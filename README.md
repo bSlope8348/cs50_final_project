@@ -32,13 +32,15 @@ Main LOVE functions:
         "What to load at program start"
     end
 
-    function love.update()
+    function love.update(dt) --dt to use for time adjusted for frame times
         "What to do every frame"
     end
 
     function love.draw()
         "Define what is seen on screen"
     end
+
+love.load -> love.update -> love.draw -> love.update -> love.draw -> love.update, etc.
 
 
 #### 2. TODO
