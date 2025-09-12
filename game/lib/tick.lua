@@ -66,6 +66,7 @@ end
 
 
 function tick:add(e)
+  ---@diagnostic disable-next-line: assign-type-mismatch
   self[e] = true
   table.insert(self, e)
   return e
@@ -82,6 +83,7 @@ function tick:remove(e)
     table.remove(self)
     return e
   end
+  ---@diagnostic disable-next-line: assign-type-mismatch
   self[e] = false
   for i, v in ipairs(self) do
     if v == e then

@@ -1,52 +1,65 @@
-require("src.example")
---require("lib.tick")
-local tick = require "lib.tick"
-local x = 30
-local y = 50
+local r1, r2, myImage
+
+local function checkCollision(a, b)
+    local a_left = a.x
+    local a_right = a.x + a.width
+    local a_top = a.y
+    local a_bottom = a.y + a.height
+
+	local b_left = b.x
+    local b_right = b.x + b.width
+    local b_top = b.y
+    local b_bottom = b.y + b.height
+
+    return  a_right > b_left
+        and a_left < b_right
+        and a_bottom > b_top
+        and a_top < b_bottom
+end
+
 function love.load()
-	
-	drawRectangle = false
-	tick.delay(function () drawRectangle = true end , 2)
-	ListOfRectangles = {}
+    --Create 2 rectangles
+    r1 = {
+        x = 10,
+        y = 100,
+        width = 100,
+        height = 100
+    }
 
-end
-
-function createRect()
-    local rect = {}
-    rect.x = 100
-    rect.y = 100
-    rect.width = 70
-    rect.height = 90
-	rect.speed = 200
-	table.insert(ListOfRectangles, rect)
-end
-
-function love.keypressed(key)
-	if key == "space" then
-		createRect()
-	end
-	    --If space is pressed then..
-    if key == "space" then
-        --x and y become a random number between 100 and 500
-        x = math.random(100, 500)
-        y = math.random(100, 500)
-    end
+    r2 = {
+        x = 250,
+        y = 120,
+        width = 150,
+        height = 120
+    }
 end
 
 function love.update(dt)
-	tick.update(dt)
-	for i,rec in ipairs(ListOfRectangles) do
-		rec.x = rec.x + rec.speed * dt
+    --Make one of rectangle move
+    if not checkCollision(r1, r2) then
+		r1.x = r1.x + 100 * dt
+	else
+		r1.x = r1.x + 50 * dt
 	end
+
 end
 
 function love.draw()
-	love.graphics.rectangle("line", x, y, 100, 100)
-	if drawRectangle then
-    	love.graphics.rectangle("fill", 100, 100, 300, 200)
+	--We create a local variable called mode
+    local mode
+    if checkCollision(r1, r2) then
+        --If there is collision, draw the rectangles filled
+        mode = "fill"
+    else
+        --else, draw the rectangles as a line
+        mode = "line"
     end
-	for i,rec in ipairs(ListOfRectangles) do
-		love.graphics.rectangle("line", rec.x, rec.y, rec.width, rec.height)
-	end
+
+	love.graphics.setColor(1, 0, 0)
+    love.graphics.rectangle(mode, r1.x, r1.y, r1.width, r1.height)
+	love.graphics.setColor(0, 0, 1)
+    love.graphics.rectangle(mode, r2.x, r2.y, r2.width, r2.height)
+	love.graphics.setColor(1, 1, 1)
 end
+
 
