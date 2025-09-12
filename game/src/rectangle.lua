@@ -8,8 +8,8 @@ function Rectangle:new(x, y, width, height, speed)
 	self.speed =  speed
 end
 
-function Rectangle:draw()
-    love.graphics.rectangle("line", self.x, self.y, self.width, self.height)
+function Rectangle:draw(mode)
+    love.graphics.rectangle(mode, self.x, self.y, self.width, self.height)
 end
 
 return Rectangle

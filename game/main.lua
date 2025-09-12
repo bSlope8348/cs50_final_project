@@ -1,4 +1,5 @@
-local r1, r2, myImage
+local r1, r2
+local Rectangle = require "src.rectangle"
 
 local function checkCollision(a, b)
     local a_left = a.x
@@ -19,47 +20,33 @@ end
 
 function love.load()
     --Create 2 rectangles
-    r1 = {
-        x = 10,
-        y = 100,
-        width = 100,
-        height = 100
-    }
+    r1 = Rectangle(10, 100, 100, 100)
 
-    r2 = {
-        x = 250,
-        y = 120,
-        width = 150,
-        height = 120
-    }
+    r2 = Rectangle(200, 120, 150, 120)
 end
 
 function love.update(dt)
-    --Make one of rectangle move
-    if not checkCollision(r1, r2) then
-		r1.x = r1.x + 100 * dt
+	if not checkCollision(r1, r2) then
+		r1.speed = 200
+		r2.speed = 100
 	else
-		r1.x = r1.x + 50 * dt
+		r1.speed = 100
+		r2.speed = 50
 	end
-
+	r1:update(dt, r1.speed)
+	r2:update(dt, r2.speed)
 end
 
 function love.draw()
-	--We create a local variable called mode
     local mode
     if checkCollision(r1, r2) then
-        --If there is collision, draw the rectangles filled
         mode = "fill"
     else
-        --else, draw the rectangles as a line
         mode = "line"
     end
-
 	love.graphics.setColor(1, 0, 0)
-    love.graphics.rectangle(mode, r1.x, r1.y, r1.width, r1.height)
+	r1:draw(mode)
 	love.graphics.setColor(0, 0, 1)
-    love.graphics.rectangle(mode, r2.x, r2.y, r2.width, r2.height)
+	r2:draw(mode)
 	love.graphics.setColor(1, 1, 1)
 end
-
-
