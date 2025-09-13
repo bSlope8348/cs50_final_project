@@ -20,8 +20,8 @@ function love.conf(t)
 	t.audio.mic             = false
 	t.audio.mixwithsystem   = true
 
-	t.window.title          = "Untitled"
-	t.window.icon           = nil
+	t.window.title          = "Space Laser"
+	t.window.icon           = "assets/kenney/PNG/playerShip1_red.png"
 	t.window.width          = 800
 	t.window.height         = 600
 	t.window.borderless     = false
