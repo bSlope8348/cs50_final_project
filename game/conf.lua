@@ -58,4 +58,12 @@ function love.conf(t)
 	t.modules.touch         = true
 	t.modules.video         = true
 	t.modules.window        = true
+
+	-- Create global variables, but using this in the code is better:
+	-- love.graphics.getHeight()
+	-- love.graphics.getWidth()
+    --[[
+	WINDOW_WIDTH = t.window.width
+    WINDOW_HEIGHT = t.window.height
+	]]
 end
