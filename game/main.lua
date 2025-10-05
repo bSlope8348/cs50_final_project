@@ -1,4 +1,4 @@
-local tilemap, image, width, height, quads, player, keyRed, has_red_key, doorRed
+local tilemap, image, width, height, quads, player, keyRed, has_red_key, doorRed, song, sfx
 local isOpenSpace, keyAquired, doorAndKey
 
 function love.load()
@@ -54,6 +54,11 @@ function love.load()
 		tile_x = 8,
 		tile_y = 3
 	}
+
+	song = love.audio.newSource("assets/audio/song.ogg", "stream")
+	song:setLooping(true)
+	song:play()
+	sfx = love.audio.newSource("assets/audio/sfx.ogg", "static")
 end
 
 function love.draw()
@@ -96,6 +101,8 @@ function love.keypressed(key)
     if isOpenSpace(x, y) then
         player.tile_x = x
         player.tile_y = y
+	else
+		sfx:play()
     end
 	if keyAquired(x, y) then
 		has_red_key = 1
