@@ -1,132 +1,141 @@
-local tilemap, image, width, height, quads, player, keyRed, has_red_key, doorRed, song, sfx
-local isOpenSpace, keyAquired, doorAndKey
-
 function love.load()
-    image = love.graphics.newImage("assets/tileset.png")
+	lume = require "lib/lume"
 
-    local image_width = image:getWidth()
-    local image_height = image:getHeight()
-    width = (image_width / 3) - 2
-    height = (image_height / 2) - 2
-
-    quads = {}
-
-    for i=0,1 do
-        for j=0,2 do
-            table.insert(quads,
-                love.graphics.newQuad(
-                    1 + j * (width + 2),
-                    1 + i * (height + 2),
-                    width, height,
-                    image_width, image_height))
-        end
-    end
-
-	tilemap = {
-		{1, 6, 6, 2, 1, 6, 6, 2, 1, 6, 6, 2, 1, 6, 6, 2},
-		{3, 0, 0, 4, 5, 0, 0, 3, 3, 0, 0, 4, 5, 0, 0, 3},
-		{3, 0, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 3},
-		{4, 2, 0, 0, 0, 0, 1, 5, 4, 2, 0, 0, 0, 0, 1, 5},
-		{1, 5, 0, 0, 0, 0, 4, 2, 1, 5, 0, 0, 0, 0, 4, 2},
-		{3, 0, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 3},
-		{3, 0, 0, 1, 2, 0, 0, 3, 3, 0, 0, 1, 2, 0, 0, 3},
-		{4, 6, 6, 5, 4, 6, 6, 5, 4, 6, 6, 5, 4, 6, 6, 5}
-	}
-
-	--Create our player
+    -- Create a player object with an x, y and size
     player = {
-        image = love.graphics.newImage("assets/player.png"),
-        tile_x = 2,
-        tile_y = 2
+        x = 100,
+        y = 100,
+        size = 25,
+		image = love.graphics.newImage("assets/face.png")
     }
 
-	--Create keys
-	has_red_key = 0
-	keyRed = {
-		image = love.graphics.newImage("assets/kenney/PNG/Power-ups/powerupRed_star.png"),
-		tile_x = 5,
-		tile_y = 6
-	}
+	coins = {}
 
-	--Create Doors
-	doorRed = {
-		image = love.graphics.newImage("assets/kenney/PNG/Power-ups/powerupRed_star.png"),
-		tile_x = 8,
-		tile_y = 3
-	}
+    if love.filesystem.getInfo("savedata.txt") then
+        file = love.filesystem.read("savedata.txt")
+        data = lume.deserialize(file)
+		--Apply the player info
+        player.x = data.player.x
+        player.y = data.player.y
+        player.size = data.player.size
 
-	song = love.audio.newSource("assets/audio/song.ogg", "stream")
-	song:setLooping(true)
-	song:play()
-	sfx = love.audio.newSource("assets/audio/sfx.ogg", "static")
+        for i,v in ipairs(data.coins) do
+            coins[i] = {
+                x = v.x,
+                y = v.y,
+                size = 10,
+                image = love.graphics.newImage("assets/dollar.png")
+            }
+        end
+	else
+		for i=1,25 do
+			table.insert(coins,
+				{
+					-- Give it a random position with math.random
+					x = love.math.random(50, 650),
+					y = love.math.random(50, 450),
+					size = 10,
+					image = love.graphics.newImage("assets/dollar.png")
+				}
+			)
+		end
+    end
+end
+
+function love.update(dt)
+    -- Make it moveable with keyboard 
+    if love.keyboard.isDown("left") then
+        player.x = player.x - 200 * dt
+    elseif love.keyboard.isDown("right") then
+        player.x = player.x + 200 * dt
+    end
+
+    -- Note how I start a new if-statement instead of contuing the elseif
+    -- I do this because else you wouldn't be able to move diagonally.
+    if love.keyboard.isDown("up") then
+        player.y = player.y - 200 * dt
+    elseif love.keyboard.isDown("down") then
+        player.y = player.y + 200 * dt
+    end
+
+	for i=#coins,1,-1 do
+        if checkCollision(player, coins[i]) then
+            table.remove(coins, i)
+            player.size = player.size + 1
+        end
+    end
 end
 
 function love.draw()
-    for i,row in ipairs(tilemap) do
-        for j,tile in ipairs(row) do
-            if tile ~= 0 then
-                --Draw the image
-                love.graphics.draw(image, quads[tile], j * width, i * height)
-            end 
+    -- The players and coins are going to be circles
+    love.graphics.circle("line", player.x, player.y, player.size)
+	-- Set the origin of the face to the center of the image
+    love.graphics.draw(player.image, player.x, player.y,
+        0, 1, 1, player.image:getWidth()/2, player.image:getHeight()/2)
+
+	for i, v in ipairs(coins) do
+	    love.graphics.circle("line", v.x, v.y, v.size)
+    	love.graphics.draw(v.image, v.x, v.y,
+        	0, 1, 1, v.image:getWidth()/2, v.image:getHeight()/2)
+	end
+end
+
+function checkCollision(p1, p2)
+    -- Calculating distance in 1 line
+    -- Subtract the x's and y's, square the difference
+    -- Sum the squares and find the root of the sum.
+    local distance = math.sqrt((p1.x - p2.x)^2 + (p1.y - p2.y)^2)
+    -- Return whether the distance is lower than the sum of the sizes.
+    return distance < p1.size + p2.size
+end
+
+function saveGame()
+	data = {}
+	data.player = {
+		x = player.x,
+		y = player.y,
+		size = player.size
+	}
+
+	data.coins = {}
+	for i,v in ipairs(coins) do
+		data.coins[i] = {x = v.x, y = v.y}
+	end
+
+	serialized = lume.serialize(data)
+	-- The filetype actually doesn't matter, and can even be omitted.
+    love.filesystem.write("savedata.txt", serialized)
+end
+
+function loadGame()
+	if love.filesystem.getInfo("savedata.txt") then
+        file = love.filesystem.read("savedata.txt")
+        data = lume.deserialize(file)
+		--Apply the player info
+        player.x = data.player.x
+        player.y = data.player.y
+        player.size = data.player.size
+
+        for i,v in ipairs(data.coins) do
+            coins[i] = {
+                x = v.x,
+                y = v.y,
+                size = 10,
+                image = love.graphics.newImage("assets/dollar.png")
+            }
         end
+	else
+		print("No file to load.")
     end
-
-	--Draw the player and multiply its tile position with the tiem width and height
-	love.graphics.draw(player.image, player.tile_x * width, player.tile_y * height)
-
-	--Draw key
-	love.graphics.draw(keyRed.image, keyRed.tile_x * width, keyRed.tile_y * height)
-
-	love.graphics.print("Keys Aquired:", 1 * width, 9.5 * height)
-
-	--Draw door
-	love.graphics.draw(doorRed.image, doorRed.tile_x * width, doorRed.tile_y * height, 0, 0.5, 0.5, -width/2, -height/2)
-	love.graphics.draw(doorRed.image, (doorRed.tile_x + 1) * width, doorRed.tile_y * height, 0, 0.5, 0.5, -width/2, -height/2)
 end
 
 function love.keypressed(key)
-	local x = player.tile_x
-	local y = player.tile_y
-
-	if key == "left" then 
-		x = x - 1
-	elseif key == "right" then
-		x = x + 1
-	elseif key == "up" then
-		y = y - 1
-	elseif key == "down" then
-		y = y + 1
-	end
-
-    if isOpenSpace(x, y) then
-        player.tile_x = x
-        player.tile_y = y
-	else
-		sfx:play()
-    end
-	if keyAquired(x, y) then
-		has_red_key = 1
-		keyRed.tile_x = 1
-		keyRed.tile_y = 10
-	end
-	if doorAndKey(x, y) then
-		tilemap[doorRed.tile_y][doorRed.tile_x] = 0
-		tilemap[doorRed.tile_y][doorRed.tile_x + 1] = 0
-	end
-end
-
-function isOpenSpace(x, y)
-    return tilemap[y][x] == 0
-end
-
-function keyAquired(x, y)
-	if x == keyRed.tile_x and y == keyRed.tile_y then
-		return true
-	end
-end
-
-function doorAndKey(x, y)
-	if x == doorRed.tile_x and y == doorRed.tile_y and has_red_key == 1 then
-		return true
+    if key == "f1" then
+        saveGame()
+	elseif key == "f2" then
+		loadGame()
+    elseif key == "f3" then
+	    love.filesystem.remove("savedata.txt")
+        love.event.quit("restart")
 	end
 end
