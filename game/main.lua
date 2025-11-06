@@ -1,3 +1,5 @@
+io.stdout:setvbuf("no")
+
 function love.load()
 	lume = require "lib/lume"
 
@@ -8,7 +10,8 @@ function love.load()
         size = 25,
 		image = love.graphics.newImage("assets/face.png")
     }
-
+	
+	score = 0
 	coins = {}
 
     if love.filesystem.getInfo("savedata.txt") then
@@ -40,6 +43,10 @@ function love.load()
 			)
 		end
     end
+
+	shakeDuration = 0
+	shakeWait = 0
+	shakeOffset = {x = 0, y = 0}
 end
 
 function love.update(dt)
@@ -62,22 +69,47 @@ function love.update(dt)
         if checkCollision(player, coins[i]) then
             table.remove(coins, i)
             player.size = player.size + 1
+			score = score + 1
+			shakeDuration = 0.3
         end
     end
+	if shakeDuration > 0 then
+    	shakeDuration = shakeDuration - dt
+		if shakeWait > 0 then
+			shakeWait = shakeWait - dt
+		else
+			shakeOffset.x = love.math.random(-5,5)
+			shakeOffset.y = love.math.random(-5,5)
+			shakeWait = 0.05
+		end
+	end
 end
 
 function love.draw()
-    -- The players and coins are going to be circles
-    love.graphics.circle("line", player.x, player.y, player.size)
-	-- Set the origin of the face to the center of the image
-    love.graphics.draw(player.image, player.x, player.y,
-        0, 1, 1, player.image:getWidth()/2, player.image:getHeight()/2)
+	love.graphics.push() -- Make a copy of the current state and push it onto the stack.
+		-- Center camera on the player
+		love.graphics.translate(-player.x + 400, -player.y + 300)
 
-	for i, v in ipairs(coins) do
-	    love.graphics.circle("line", v.x, v.y, v.size)
-    	love.graphics.draw(v.image, v.x, v.y,
-        	0, 1, 1, v.image:getWidth()/2, v.image:getHeight()/2)
-	end
+		if shakeDuration > 0 then
+            -- Translate with a random number between -5 an 5.
+            -- This second translate will be done based on the previous translate.
+            -- So it will not reset the previous translate.
+            love.graphics.translate(shakeOffset.x, shakeOffset.y)
+        end
+
+		-- The players and coins are going to be circles
+		love.graphics.circle("line", player.x, player.y, player.size)
+		-- Set the origin of the face to the center of the image
+		love.graphics.draw(player.image, player.x, player.y,
+			0, 1, 1, player.image:getWidth()/2, player.image:getHeight()/2)
+
+		for i, v in ipairs(coins) do
+			love.graphics.circle("line", v.x, v.y, v.size)
+			love.graphics.draw(v.image, v.x, v.y,
+				0, 1, 1, v.image:getWidth()/2, v.image:getHeight()/2)
+		end
+    love.graphics.pop() -- Pull the copy of the state of the stack and apply it.
+		love.graphics.print("Score: " .. score, 10, 10)
 end
 
 function checkCollision(p1, p2)
