@@ -1,4 +1,4 @@
-local Shape = require "src.shape"
+--[[local Shape = require "src.shape"
 local Rectangle = Shape:extend()
 
 function Rectangle:new(x, y, width, height, speed)
@@ -13,3 +13,4 @@ function Rectangle:draw(mode)
 end
 
 return Rectangle
+]]

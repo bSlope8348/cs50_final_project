@@ -1,4 +1,4 @@
-local Shape = require "src.shape"
+--[[local Shape = require "src.shape"
 local Circle = Shape:extend()
 
 function Circle:new(x, y, radius, speed)
@@ -13,3 +13,4 @@ function Circle:draw()
 end
 
 return Circle
+]]

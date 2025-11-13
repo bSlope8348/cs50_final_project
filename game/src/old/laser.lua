@@ -1,4 +1,4 @@
-local Object = require "lib.classic"
+--[[local Object = require "lib.classic"
 local Laser = Object:extend()
 
 function Laser:new(x, y)
@@ -48,3 +48,4 @@ function Laser:checkCollision(obj)
 end
 
 return Laser
+]]

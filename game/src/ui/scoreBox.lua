@@ -1,4 +1,4 @@
-local Object = require "lib.classic"
+--[[local Object = require "lib.classic"
 local ScoreBox = Object:extend()
 
 function ScoreBox:new(x, y, score)
@@ -23,3 +23,4 @@ function ScoreBox:draw()
 end
 
 return ScoreBox
+]]

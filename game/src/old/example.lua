@@ -1,4 +1,4 @@
-local test = 20
+--[[local test = 20
 
 function some_function(test)
     if true then
@@ -11,3 +11,4 @@ end
 some_function(30)
 
 print(test)
+]]

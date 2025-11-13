@@ -1,4 +1,4 @@
-local Object = require "lib.classic"
+--[[local Object = require "lib.classic"
 local Shape = Object:extend()
 
 function Shape:new(x, y)
@@ -11,3 +11,4 @@ function Shape:update(dt, speed)
 end
 
 return Shape
+]]

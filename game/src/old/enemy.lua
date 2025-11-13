@@ -1,4 +1,4 @@
-local Object = require "lib.classic"
+--[[local Object = require "lib.classic"
 local Enemy = Object:extend()
 
 function Enemy:new()
@@ -27,3 +27,4 @@ function Enemy:draw()
 end
 
 return Enemy
+]]
