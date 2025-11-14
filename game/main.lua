@@ -1,4 +1,4 @@
-local player, wall, boxes, boxCount, objects
+local player, walls, map, box, objects
 
 function love.load()
     Object = require "lib.classic"
@@ -8,25 +8,44 @@ function love.load()
 	require "src.box"
 
     player = Player(100, 100)
-    wall = Wall(200, 100)
+    box = Box(400, 150)
 
-	boxes = {}
-	boxCount = 5
-	for i=1,boxCount do
-		table.insert(boxes, Box(300, 110+(i-1)*50))
-	end
-
-	objects = {}
+    objects = {}
     table.insert(objects, player)
-    table.insert(objects, wall)
-	for i=1,boxCount do
-		table.insert(objects, boxes[i])
-	end
+    table.insert(objects, box)
+	
+	walls = {}
+
+    map = {
+        {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1},
+        {1,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
+        {1,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
+        {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+    }
+
+    for i,v in ipairs(map) do
+        for j,w in ipairs(v) do
+            if w == 1 then
+                table.insert(walls, Wall((j-1)*50, (i-1)*50))
+            end
+        end
+    end
 end
 
 function love.update(dt)
     -- Update all the objects
     for i,v in ipairs(objects) do
+        v:update(dt)
+    end
+	for i,v in ipairs(walls) do
         v:update(dt)
     end
 
@@ -54,6 +73,16 @@ function love.update(dt)
 				end
 			end
 		end
+
+		-- For each object check collision with every wall.
+        for i,wall in ipairs(walls) do
+            for j,object in ipairs(objects) do
+                local collision = object:resolveCollision(wall)
+                if collision then
+                    loop = true
+                end
+            end
+        end
 	end
 end
 
@@ -62,4 +91,13 @@ function love.draw()
     for i,v in ipairs(objects) do
         v:draw()
     end
+    for i,v in ipairs(walls) do
+        v:draw()
+    end
+end
+
+function love.keypressed(key)
+	if key == "up" then
+		player:jump()
+	end
 end
