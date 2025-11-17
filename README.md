@@ -18,6 +18,7 @@
     - Connecting to my heat pump output troubleshooting LEDs with an Arduino microcontroller
 
 #### 1. Research and Planning
+Decided to go with idea number 4. 
 Learn about about LOVE2d with Lua (CS50 video) https://www.youtube.com/watch?v=iOA5YspoJDM
 
 Avoid Game Dev Landmines:
