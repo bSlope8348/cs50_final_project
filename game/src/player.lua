@@ -6,6 +6,7 @@ function Player:new(x, y)
 	self.weight = 400
 	self.canJump = false
 	self.speed = 300
+	self.hasCoin = 0
 end
 
 function Player:update(dt)
@@ -37,7 +38,7 @@ function Player:collide(e, direction)
     end
 end
 
---[[function Player:checkResolve(e, direction)
+function Player:checkResolve(e, direction)
     if e:is(ThruFloor) then
         if direction == "top" then
             return true
@@ -45,5 +46,12 @@ end
             return false
         end
     end
+	if e:is(Coin) then
+		print("Coin Collected")
+		e.remove = 1
+		self.hasCoin = 1
+		self.image = love.graphics.newImage("assets/character/alienYellow_square.png")
+		return false
+	end
     return true
-end]]
+end

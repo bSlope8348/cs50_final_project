@@ -1,4 +1,6 @@
-local player, walls, map, objects
+io.stdout:setvbuf("no")
+
+local player, walls, map, objects, box
 
 function love.load()
     Object = require "lib.classic"
@@ -9,45 +11,51 @@ function love.load()
 	require "src.exit"
 	require "src.floor"
 	require "src.thruFloor"
+	require "src.coin"
 
-    objects = {}
+	objects = {}
+
 	walls = {}
 
     map = {
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
         {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3},
+        {1,0,0,0,0,2,0,0,0,0,0,0,0,3,0,1},
         {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
         {1,0,0,5,5,5,5,5,5,5,5,5,5,5,5,1},
         {1,0,6,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,4,0,0,0,0,0,0,0,1},
         {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-        {1,0,0,0,0,0,4,0,0,0,0,0,0,0,0,1},
         {1,5,5,5,5,5,5,5,5,5,5,5,5,0,0,1},
-        {1,0,0,0,0,0,0,0,0,0,0,0,0,6,0,1},
-        {1,0,2,0,4,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,7,0,0,0,0,0,0,0,1},
+        {1,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1},
         {1,5,5,5,5,5,5,5,5,5,5,5,5,5,5,1}
     }
 
     for i,v in ipairs(map) do
         for j,w in ipairs(v) do
+			local placement_x = (j-1)*80
+			local placement_y = (i-1)*80
             if w == 1 then
-                table.insert(walls, Wall((j-1)*80, (i-1)*80))
+                table.insert(walls, Wall(placement_x, placement_y))
             end 
 			if w == 2 then
-				player = Player((j-1)*80, (i-1)*80)
-				table.insert(objects, player)
+				table.insert(objects, Player(placement_x, placement_y))
 			end
 			if w == 3 then
-				table.insert(walls, Exit((j-1)*80, (i-1)*80))
+				table.insert(walls, Exit(placement_x, placement_y))
 			end
 			if w == 4 then
-				table.insert(objects, Box((j-1)*80, (i-1)*80))
+				table.insert(objects, Box(placement_x, placement_y))
 			end
 			if w == 5 then
-				table.insert(walls, Floor((j-1)*80, (i-1)*80))
+				table.insert(walls, Floor(placement_x, placement_y))
 			end
 			if w == 6 then
-				table.insert(walls, ThruFloor((j-1)*80, (i-1)*80))
+				table.insert(walls, ThruFloor(placement_x, placement_y))
+			end
+			if w == 7 then
+				table.insert(objects, Coin(placement_x, placement_y))
 			end
         end
     end
@@ -70,32 +78,42 @@ function love.update(dt)
         loop = false
 
 		limit = limit + 1
-		if limit > 100 then
+		if limit > 1000 then
             -- Still not done at loop 100
             -- Break it because we're probably stuck in an endless loop.
 			break
 		end
-
-		-- Go through all the objects (except the last)
-		for i=1,#objects-1 do
-			-- Go through all the objects starting from the position i + 1
-			for j=i+1,#objects do
-				local collision = objects[i]:resolveCollision(objects[j])
+		-- Coin collection and Exit transparency 
+		for i = #objects, 1, -1 do
+			if objects[i].remove == 1 then
+				for j,w in ipairs(walls) do
+					if w:is(Exit) then
+						w.transparency = 1
+					end
+				end
+				table.remove(objects, i)
+			end
+		end
+		-- For each object, check ALL its collisions before moving to the next object
+		for i, object in ipairs(objects) do
+			-- Check against other objects
+			for j, other in ipairs(objects) do
+				if i ~= j then
+					local collision = object:resolveCollision(other)
+					if collision then
+						loop = true
+					end
+				end
+			end
+			-- Check against walls
+			for j, wall in ipairs(walls) do
+				local collision = object:resolveCollision(wall)
 				if collision then
 					loop = true
 				end
 			end
 		end
 
-		-- For each object check collision with every wall.
-        for i,wall in ipairs(walls) do
-            for j,object in ipairs(objects) do
-                local collision = object:resolveCollision(wall)
-                if collision then
-                    loop = true
-                end
-            end
-        end
 	end
 end
 
@@ -110,7 +128,11 @@ function love.draw()
 end
 
 function love.keypressed(key)
-	if key == "space" or key == "up" then
-		player:jump()
+	for i,v in ipairs(objects) do
+		if v:is(Player) then
+			if key == "space" or key == "up" then
+				v:jump()
+			end
+		end
 	end
 end
