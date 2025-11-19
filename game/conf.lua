@@ -20,10 +20,10 @@ function love.conf(t)
 	t.audio.mic             = false
 	t.audio.mixwithsystem   = true
 
-	t.window.title          = "Space Laser"
-	t.window.icon           = "assets/kenney/PNG/playerShip1_red.png"
-	t.window.width          = 800
-	t.window.height         = 600
+	t.window.title          = "JumpSim"
+	t.window.icon           = "assets/tile_exclamation.png"
+	t.window.width          = 1280
+	t.window.height         = 960
 	t.window.borderless     = false
 	t.window.resizable      = false
 	t.window.minwidth       = 1

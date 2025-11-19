@@ -43,8 +43,10 @@ Main LOVE functions:
 
 love.load -> love.update -> love.draw -> love.update -> love.draw -> love.update, etc.
 
+#### 3. Credits
+Game Assets: https://kenney.nl/
 
-#### 2. TODO
+#### 3. TODO
 
 ...
 

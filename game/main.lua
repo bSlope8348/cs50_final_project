@@ -1,4 +1,4 @@
-local player, walls, map, box, objects
+local player, walls, map, objects
 
 function love.load()
     Object = require "lib.classic"
@@ -6,36 +6,49 @@ function love.load()
     require "src.player"
     require "src.wall"
 	require "src.box"
-
-    player = Player(100, 100)
-    box = Box(400, 150)
+	require "src.exit"
+	require "src.floor"
+	require "src.thruFloor"
 
     objects = {}
-    table.insert(objects, player)
-    table.insert(objects, box)
-	
 	walls = {}
 
     map = {
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
         {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3},
         {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+        {1,0,0,5,5,5,5,5,5,5,5,5,5,5,5,1},
+        {1,0,6,0,0,0,0,0,0,0,0,0,0,0,0,1},
         {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-        {1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1},
-        {1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1},
-        {1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1},
-        {1,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
-        {1,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
-        {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+        {1,0,0,0,0,0,4,0,0,0,0,0,0,0,0,1},
+        {1,5,5,5,5,5,5,5,5,5,5,5,5,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,6,0,1},
+        {1,0,2,0,4,0,0,0,0,0,0,0,0,0,0,1},
+        {1,5,5,5,5,5,5,5,5,5,5,5,5,5,5,1}
     }
 
     for i,v in ipairs(map) do
         for j,w in ipairs(v) do
             if w == 1 then
-                table.insert(walls, Wall((j-1)*50, (i-1)*50))
-            end
+                table.insert(walls, Wall((j-1)*80, (i-1)*80))
+            end 
+			if w == 2 then
+				player = Player((j-1)*80, (i-1)*80)
+				table.insert(objects, player)
+			end
+			if w == 3 then
+				table.insert(walls, Exit((j-1)*80, (i-1)*80))
+			end
+			if w == 4 then
+				table.insert(objects, Box((j-1)*80, (i-1)*80))
+			end
+			if w == 5 then
+				table.insert(walls, Floor((j-1)*80, (i-1)*80))
+			end
+			if w == 6 then
+				table.insert(walls, ThruFloor((j-1)*80, (i-1)*80))
+			end
         end
     end
 end
@@ -97,7 +110,7 @@ function love.draw()
 end
 
 function love.keypressed(key)
-	if key == "up" then
+	if key == "space" or key == "up" then
 		player:jump()
 	end
 end

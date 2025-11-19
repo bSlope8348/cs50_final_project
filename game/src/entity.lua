@@ -85,8 +85,8 @@ function Entity:resolveCollision(e)
                     self:collide(e, "bottom")
                 end
             else
-                local a = self:checkResolve(e, "bottom")
-                local b = e:checkResolve(self, "top")
+                local a = self:checkResolve(e, "top")
+                local b = e:checkResolve(self, "bottom")
                 if a and b then
                     self:collide(e, "top")
                 end
@@ -115,6 +115,7 @@ function Entity:collide(e, direction)
     elseif direction == "top" then
         local pushback = e.y + e.height - self.y
         self.y = self.y + pushback
+		self.gravity = 0
     end
 end
 

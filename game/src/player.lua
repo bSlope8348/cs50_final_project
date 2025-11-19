@@ -1,20 +1,21 @@
 Player = Entity:extend()
 
 function Player:new(x, y)
-    Player.super.new(self, x, y, "assets/player23.png")
+    Player.super.new(self, x, y, "assets/character/alienBeige_square.png")
 	self.strength = 10
 	self.weight = 400
 	self.canJump = false
+	self.speed = 300
 end
 
 function Player:update(dt)
     -- It's important that we do this before changing the position
     Player.super.update(self, dt)
 
-    if love.keyboard.isDown("left") then
-        self.x = self.x - 200 * dt
-    elseif love.keyboard.isDown("right") then
-        self.x = self.x + 200 * dt
+    if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
+        self.x = self.x - self.speed * dt
+    elseif love.keyboard.isDown("d") or love.keyboard.isDown("right") then
+        self.x = self.x + self.speed * dt
     end
 
 	if self.last.y ~= self.y then
@@ -24,7 +25,7 @@ end
 
 function Player:jump()
 	if self.canJump then
-		self.gravity = -300
+		self.gravity = -500
 		self.canJump = false
 	end
 end
@@ -36,13 +37,13 @@ function Player:collide(e, direction)
     end
 end
 
-function Player:checkResolve(e, direction)
-    if e:is(Box) then
-        if direction == "bottom" then
+--[[function Player:checkResolve(e, direction)
+    if e:is(ThruFloor) then
+        if direction == "top" then
             return true
         else
             return false
         end
     end
     return true
-end
+end]]
