@@ -47,7 +47,6 @@ function Player:checkResolve(e, direction)
         end
     end
 	if e:is(Coin) then
-		print("Coin Collected")
 		e.remove = 1
 		self.hasCoin = 1
 		self.image = love.graphics.newImage("assets/character/alienYellow_square.png")

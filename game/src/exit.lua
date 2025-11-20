@@ -5,6 +5,7 @@ function Exit:new(x, y)
 	self.strength = 100
 	self.weight = 0
 	self.transparency = 0.5
+	self.victory = false
 end
 
 function Exit:draw()
@@ -15,7 +16,7 @@ end
 
 function Exit:checkResolve(e, direction)
 	if e:is(Player) and e.hasCoin == 1 then
-		print("WINNER!")
+		self.victory = true
 		return false
 	end
 	if self.transparency == 0.5 then

@@ -1,6 +1,8 @@
 io.stdout:setvbuf("no")
 
-local player, walls, map, objects, box
+local walls, map, objects, myFont
+local isPaused, key_map, victory
+local pause = require("src.pause")
 
 function love.load()
     Object = require "lib.classic"
@@ -13,8 +15,21 @@ function love.load()
 	require "src.thruFloor"
 	require "src.coin"
 
-	objects = {}
+	myFont = love.graphics.newFont(30)
+	love.graphics.setFont(myFont)
 
+	victory = false
+	isPaused = false
+	key_map = {
+  		q = function()
+    		love.event.quit()
+  		end,
+  		escape = function()
+    		isPaused = not isPaused
+  		end
+	}
+
+	objects = {}
 	walls = {}
 
     map = {
@@ -24,10 +39,10 @@ function love.load()
         {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
         {1,0,0,5,5,5,5,5,5,5,5,5,5,5,5,1},
         {1,0,6,0,0,0,0,0,0,0,0,0,0,0,0,1},
-        {1,0,0,0,0,0,0,4,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,4,0,0,0,7,0,0,0,1},
         {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
         {1,5,5,5,5,5,5,5,5,5,5,5,5,0,0,1},
-        {1,0,0,0,0,0,0,7,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
         {1,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1},
         {1,5,5,5,5,5,5,5,5,5,5,5,5,5,5,1}
     }
@@ -43,7 +58,7 @@ function love.load()
 				table.insert(objects, Player(placement_x, placement_y))
 			end
 			if w == 3 then
-				table.insert(walls, Exit(placement_x, placement_y))
+				table.insert(objects, Exit(placement_x, placement_y))
 			end
 			if w == 4 then
 				table.insert(objects, Box(placement_x, placement_y))
@@ -62,31 +77,37 @@ function love.load()
 end
 
 function love.update(dt)
-    -- Update all the objects
-    for i,v in ipairs(objects) do
-        v:update(dt)
-    end
-	for i,v in ipairs(walls) do
-        v:update(dt)
-    end
+	if isPaused then
+		pause.update(dt)
+		isPaused = pause.resume()
+		return
+  	end
 
-    local loop = true
-    local limit = 0
+	-- Update all the objects
+	for i,v in ipairs(objects) do
+		v:update(dt)
+	end
+	for i,v in ipairs(walls) do
+		v:update(dt)
+	end
+
+	local loop = true
+	local limit = 0
 
 	while loop do
-	    -- Set loop to false, if no collision happened it will stay false
-        loop = false
+		-- Set loop to false, if no collision happened it will stay false
+		loop = false
 
 		limit = limit + 1
 		if limit > 1000 then
-            -- Still not done at loop 100
-            -- Break it because we're probably stuck in an endless loop.
+			-- Still not done at loop 100
+			-- Break it because we're probably stuck in an endless loop.
 			break
 		end
 		-- Coin collection and Exit transparency 
 		for i = #objects, 1, -1 do
 			if objects[i].remove == 1 then
-				for j,w in ipairs(walls) do
+				for j,w in ipairs(objects) do
 					if w:is(Exit) then
 						w.transparency = 1
 					end
@@ -113,7 +134,11 @@ function love.update(dt)
 				end
 			end
 		end
-
+	end
+	for i,v in ipairs(objects) do
+		if v:is(Exit) then
+			victory = v.victory
+		end
 	end
 end
 
@@ -125,6 +150,17 @@ function love.draw()
     for i,v in ipairs(walls) do
         v:draw()
     end
+	if victory then
+		-- Semi-transparent overlay
+    	love.graphics.setColor(0, 0, 0, 0.85)
+    	love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+	    -- Victory text
+		love.graphics.setColor(1, 1, 1)
+		love.graphics.printf({{0.5, 1, 0.75}, "WINNER!"}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2 - 150, love.graphics.getWidth(), "center", 0, 5, 5, love.graphics.getWidth() / 2, 0)
+	end
+	if isPaused then
+		pause.draw()
+	end
 end
 
 function love.keypressed(key)
@@ -134,5 +170,15 @@ function love.keypressed(key)
 				v:jump()
 			end
 		end
+	end
+
+	if key_map[key] then
+    	key_map[key]()
+  	end
+end
+
+function love.focus(f)
+	if not f then
+		isPaused = true
 	end
 end
