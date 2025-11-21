@@ -1,4 +1,5 @@
 io.stdout:setvbuf("no")
+require "lib/sqlite3"
 
 local walls, map, objects, myFont
 local isPaused, key_map, victory
@@ -14,6 +15,15 @@ function love.load()
 	require "src.floor"
 	require "src.thruFloor"
 	require "src.coin"
+
+    --create/open database
+    local hDB = sqlite3.open("db/mydatabase.db");
+		if hDB then
+		local sQuery = "CREATE TABLE test (id INTEGER PRIMARY KEY   AUTOINCREMENT, name CHAR(20));";
+		hDB:execute(sQuery);
+		hDB:execute("INSERT INTO test (name) VALUES ('Don')");
+		hDB:close();
+		end
 
 	myFont = love.graphics.newFont(30)
 	love.graphics.setFont(myFont)
