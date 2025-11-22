@@ -4,13 +4,17 @@ local isPaused
 local resume = {}
 local save = {}
 local load = {}
+local logs = {}
+local restart = {}
 local exit = {}
-local colors = {resume, save, load, exit}
+local colors = {resume, save, load, logs, restart, exit}
 
 resume.height = love.graphics.getHeight() / 2 - 50
 save.height = love.graphics.getHeight() / 2
 load.height = love.graphics.getHeight() / 2 + 50
-exit.height = love.graphics.getHeight() / 2 + 100
+logs.height = love.graphics.getHeight() / 2 + 100
+restart.height = love.graphics.getHeight() / 2 + 150
+exit.height = love.graphics.getHeight() / 2 + 200
 for i,v in ipairs(colors) do
 	v.color = {1, 1, 1}
 end
@@ -40,8 +44,10 @@ function pause.draw()
     love.graphics.printf({{1, 0.25, 0.25}, "PAUSED"}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2 - 150, love.graphics.getWidth(), 
 		"center", 0, 2, 2, love.graphics.getWidth() / 2, 0)
     love.graphics.printf({resume.color, "Resume"}, 0, resume.height, love.graphics.getWidth(), "center")
-	love.graphics.printf({save.color, "Save"}, 0, save.height, love.graphics.getWidth(), "center")
-	love.graphics.printf({load.color, "Load"}, 0, load.height, love.graphics.getWidth(), "center")
+	love.graphics.printf({{1, 1, 1, 0.5}, "Save"}, 0, save.height, love.graphics.getWidth(), "center") --save.color,
+	love.graphics.printf({{1, 1, 1, 0.5}, "Load"}, 0, load.height, love.graphics.getWidth(), "center") --load.color,
+	love.graphics.printf({{1, 1, 1, 0.5}, "Logs"}, 0, logs.height, love.graphics.getWidth(), "center") --logs.color,
+	love.graphics.printf({restart.color, "Restart"}, 0, restart.height, love.graphics.getWidth(), "center")
 	love.graphics.printf({exit.color, "Exit"}, 0, exit.height, love.graphics.getWidth(), "center")
 end
 
@@ -55,6 +61,14 @@ end
 
 load.func = function()
 	-- TODO
+end
+
+logs.func = function()
+	-- TODO
+end
+
+restart.func = function()
+	love.event.quit("restart")
 end
 
 exit.func = function()
