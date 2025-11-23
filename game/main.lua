@@ -16,10 +16,15 @@ local timerBox = require("src/ui/scoreBox")
 local name = require("src/ui/name")
 
 local walls, map, objects, myFont, playerName, timeCompleted, firstKey, notCompleted
-local isPaused, key_map, victory, gDB, noKeyPressedYet, timer, timerRunning, startUp
+local isPaused, key_map, victory, gDB, noKeyPressedYet, timer, timerRunning, startUp, rank
 
+local function escapeSQLString(str)
+    return str:gsub("'", "''")  -- Double single quotes to escape them
+end
 
 function love.load()
+	love.keyboard.setKeyRepeat(true)
+
 	startUp = false
 	timer = 0
 	timerRunning = false
@@ -28,7 +33,8 @@ function love.load()
 	timeCompleted = 0
 	firstKey = ""
 	notCompleted = true
-    --create/open game loggin database
+    rank = 0
+	--create/open game loggin database
     gDB = sqlite3.open("db/gameDB.db")
 	if gDB then
 		local query = 
@@ -104,16 +110,14 @@ function love.update(dt)
 	if not startUp then
 		name.update(dt)
 		playerName = name.submittedName()
-		print(playerName)
 		if name.ready() then
 			startUp = true
 		end
-		print(startUp)
 		return
 	end
 
 	if isPaused then
-		pause.update(dt)
+		pause.update(dt, gDB)
 		isPaused = pause.resume()
 		return
   	end
@@ -182,12 +186,21 @@ function love.update(dt)
 			if victory and notCompleted then
 				timeCompleted = timer
 				if gDB and gDB:isopen() then
-					local query = string.format(
+					local iQuery = string.format(
 						"INSERT INTO log (name, time_completed, first_key_used, date_logged) VALUES ('%s', %f, '%s', %d)",
-						playerName, timeCompleted, firstKey, os.time()
-						)
-					gDB:execute(query)
-					gDB:close()
+						escapeSQLString(playerName), timeCompleted, escapeSQLString(firstKey), os.time()
+					)
+					gDB:execute(iQuery)
+
+					local rQuery = string.format(
+						"SELECT COUNT(*) as rank FROM log WHERE time_completed > 0 AND time_completed < %f AND time_completed IS NOT NULL",
+						timeCompleted
+					)
+					rank = 0
+					for row in gDB:nrows(rQuery) do
+						rank = row.rank + 1
+						break  -- Only one row expected
+					end
 				end
 				notCompleted = false
 			end
@@ -212,20 +225,28 @@ function love.draw()
     	love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 	    -- Victory text
 		love.graphics.setColor(1, 1, 1)
-		love.graphics.printf({{0.5, 1, 0.75}, "WINNER!"}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2 - 150, love.graphics.getWidth(), "center", 0, 4, 4, love.graphics.getWidth() / 2, 0)
-		love.graphics.printf({{1, 1, 0}, "Time: " .. string.format("%.2f", timeCompleted) .. " seconds"}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2, love.graphics.getWidth(), "center", 0, 2, 2, love.graphics.getWidth() / 2, 0)
+		love.graphics.printf({{0.5, 1, 0.75}, "WINNER!"}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2 - 150, 
+			love.graphics.getWidth(), "center", 0, 4, 4, love.graphics.getWidth() / 2, 0)
+		love.graphics.printf({{1, 1, 0}, "Time: " .. string.format("%.2f", timeCompleted) .. " seconds"}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2, 
+			love.graphics.getWidth(), "center", 0, 2, 2, love.graphics.getWidth() / 2, 0)
+		love.graphics.printf({{1, 1, 1}, "Your Rank: " .. rank}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2 + 100, 
+			love.graphics.getWidth(), "center", 0, 1.5, 1.5, love.graphics.getWidth() / 2, 0)
 	end
-	
+
 	if not startUp then
 		name.draw()
 	end
-	
+
 	if isPaused then
 		pause.draw()
 	end
 end
 
-function love.keypressed(key)
+function love.keypressed(key, scancode, isRepeat)
+    if not startUp then
+        name.keypressed(key, isRepeat)
+		return
+    end
 	if noKeyPressedYet and startUp then
 		noKeyPressedYet = false
 		firstKey = key
@@ -243,6 +264,12 @@ function love.keypressed(key)
 	if key_map[key] then
     	key_map[key]()
   	end
+end
+
+function love.textinput(text)
+    if not startUp then
+        name.textinput(text)
+    end
 end
 
 function love.focus(f)

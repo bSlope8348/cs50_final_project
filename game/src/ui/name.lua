@@ -4,6 +4,7 @@ local playerName = ""
 local ready = false
 ----------------------------------------------------------------------
 local InputField = require("lib/InputField")
+local utf8 = require("utf8")
 
 local FONT_SIZE        = 20
 local FONT_LINE_HEIGHT = 1
@@ -30,8 +31,16 @@ local field = InputField(playerName, FIELD_TYPE)
 field:setFont(theFont)
 field:setDimensions(FIELD_INNER_WIDTH, FIELD_INNER_HEIGHT)
 
-function love.textinput(text)
-	field:textinput(text)
+local MAX_NAME_LENGTH = 20
+
+function name.keypressed(key, isRepeat)
+    field:keypressed(key, isRepeat)
+end
+
+function name.textinput(text)
+    if utf8.len(field:getText()) < MAX_NAME_LENGTH then
+        field:textinput(text)
+    end
 end
 
 function love.mousepressed(mx, my, mbutton, pressCount)
@@ -131,12 +140,12 @@ function name.ready()
 end
 
 submit.func = function()
-	playerName = field.text
+	playerName = field.text:sub(1, 20)
 	ready = true
 end
 
 clear.func = function()
-	-- TODO
+	field:reset( "" )
 end
 
 return name
