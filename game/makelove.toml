@@ -1,5 +1,5 @@
 name = "JumpSim"
-default_targets = ["win32", "win64"]
+default_targets = ["win32", "win64", "lovejs", "macos"] # "appimage" must be run from WSL2 for a linux build
 build_directory = "../builds"
 
 love_files = [

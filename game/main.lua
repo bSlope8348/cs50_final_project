@@ -1,13 +1,15 @@
-local sql = require("lib.sqlite3")
+require("lib.sqlite3")
+
 Object = require("lib.classic")
-local entity = require("src.entity")
-local player = require("src.player")
-local wall = require("src.wall")
-local box = require("src.box")
-local exit = require("src.exit")
-local floor = require("src.floor")
-local thruFloor = require("src.thruFloor")
-local coin = require("src.coin")
+
+require("src.entity")
+require("src.player")
+require("src.wall")
+require("src.box")
+require("src.exit")
+require("src.floor")
+require("src.thruFloor")
+require("src.coin")
 
 local lume = require("lib.lume")
 
