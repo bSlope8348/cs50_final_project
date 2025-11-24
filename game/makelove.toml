@@ -1,8 +1,9 @@
 name = "JumpSim"
-default_targets = ["win64"]
+default_targets = ["win32", "win64"]
 build_directory = "../builds"
 
 love_files = [
-    "::git-ls-tree::",
-    "-*/.*",
+    "**/*",           # Include everything
+    "-*/.*",          # Exclude hidden files
+    "-**/*.git*",     # Exclude git files
 ]

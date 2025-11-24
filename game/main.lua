@@ -1,21 +1,19 @@
-io.stdout:setvbuf("no")
+local sql = require("lib.sqlite3")
+Object = require("lib.classic")
+local entity = require("src.entity")
+local player = require("src.player")
+local wall = require("src.wall")
+local box = require("src.box")
+local exit = require("src.exit")
+local floor = require("src.floor")
+local thruFloor = require("src.thruFloor")
+local coin = require("src.coin")
 
-require("lib/sqlite3")
-Object = require "lib.classic"
-require "src.entity"
-require "src.player"
-require "src.wall"
-require "src.box"
-require "src.exit"
-require "src.floor"
-require "src.thruFloor"
-require "src.coin"
+local lume = require("lib.lume")
 
-local lume = require("lib/lume")
-
-local pause = require("src/ui/pause")
-local timerBox = require("src/ui/scoreBox")
-local name = require("src/ui/name")
+local pause = require("src.ui.pause")
+local timerBox = require("src.ui.scoreBox")
+local name = require("src.ui.name")
 
 local walls, map, objects, myFont, playerName, timeCompleted, firstKey, notCompleted
 local isPaused, key_map, victory, gDB, noKeyPressedYet, timer, timerRunning, startUp, rank
@@ -130,7 +128,8 @@ function love.load()
 	notCompleted = true
     rank = 0
 	--create/open game loggin database
-    gDB = sqlite3.open("db/gameDB.db")
+	local saveDir = love.filesystem.getSaveDirectory()
+    gDB = sqlite3.open(saveDir .. "/gameDB.db")
 	if gDB then
 		local query = 
 			"CREATE TABLE IF NOT EXISTS log (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, time_completed REAL, first_key_used TEXT, date_logged INTEGER);"
