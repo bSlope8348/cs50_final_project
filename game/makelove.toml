@@ -1,7 +1,8 @@
-name = "Game"
-default_targets = ["win32", "win64", "macos", "lovejs"]
+name = "JumpSim"
+default_targets = ["win32", "win64"]
 build_directory = "../builds"
+
 love_files = [
-    "+*",
+    "::git-ls-tree::",
     "-*/.*",
 ]
