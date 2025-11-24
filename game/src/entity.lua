@@ -3,7 +3,8 @@ Entity = Object:extend()
 function Entity:new(x, y, image_path)
     self.x = x
     self.y = y
-    self.image = love.graphics.newImage(image_path)
+	self.image_path = image_path
+    self.image = love.graphics.newImage(self.image_path)
     self.width = self.image:getWidth()
     self.height = self.image:getHeight()
 	self.strength = 0

@@ -11,6 +11,8 @@ require "src.floor"
 require "src.thruFloor"
 require "src.coin"
 
+local lume = require("lib/lume")
+
 local pause = require("src/ui/pause")
 local timerBox = require("src/ui/scoreBox")
 local name = require("src/ui/name")
@@ -20,6 +22,99 @@ local isPaused, key_map, victory, gDB, noKeyPressedYet, timer, timerRunning, sta
 
 local function escapeSQLString(str)
     return str:gsub("'", "''")  -- Double single quotes to escape them
+end
+
+local function saveGame(slotName)
+    local saveData = {
+        timer = timer,
+        timerRunning = timerRunning,
+        victory = victory,
+        playerName = playerName,
+        firstKey = firstKey,
+        noKeyPressedYet = noKeyPressedYet,
+		timeCompleted = timeCompleted,
+		startUp = startUp,
+		notCompleted = notCompleted,
+        objects = {},  -- serialize object positions/states
+        -- walls = {},    -- if needed
+    }
+
+    -- Serialize objects
+    for i, obj in ipairs(objects) do
+		if obj:is(Player) then
+			table.insert(saveData.objects, {
+				type = "Player",
+				x = obj.x,
+				y = obj.y,
+				canJump = obj.canJump,
+				hasCoin = obj.hasCoin,
+				image_path = obj.image_path
+			})
+		elseif obj:is(Box) then
+			table.insert(saveData.objects, {
+				type = "Box",
+				x = obj.x,
+				y = obj.y
+			})
+		elseif obj:is(Coin) then
+			table.insert(saveData.objects, {
+				type = "Coin",
+				x = obj.x,
+				y = obj.y
+			})
+		elseif obj:is(Exit) then
+			table.insert(saveData.objects, {
+				type = "Exit",
+				x = obj.x,
+				y = obj.y,
+				transparency = obj.transparency,
+				victory = obj.victory
+			})
+		end
+    end
+
+    local serialized = lume.serialize(saveData)
+	love.filesystem.write(slotName .. ".txt", serialized)
+end
+
+local function loadGame(slotName)
+	if love.filesystem.getInfo(slotName .. ".txt") then
+		local file = love.filesystem.read(slotName .. ".txt")
+		local saveData = lume.deserialize(file)
+
+		timer = saveData.timer
+		timerRunning = saveData.timerRunning
+		victory = saveData.victory
+		playerName = saveData.playerName
+        firstKey = saveData.firstKey
+        noKeyPressedYet = saveData.noKeyPressedYet
+		timeCompleted = saveData.timeCompleted
+		startUp = saveData.startUp
+		notCompleted = saveData.notCompleted
+		-- restore all states...
+
+		-- Recreate objects
+		objects = {}
+		for i, data in ipairs(saveData.objects) do
+			if data.type == "Player" then
+				local player = Player(data.x, data.y)
+				player.canJump = data.canJump
+				player.hasCoin = data.hasCoin
+				player.image_path = data.image_path
+				player.image = love.graphics.newImage(player.image_path)
+				table.insert(objects, player)
+			elseif data.type == "Box" then
+				table.insert(objects, Box(data.x, data.y))
+			elseif data.type == "Coin" then
+				table.insert(objects, Coin(data.x, data.y))
+			elseif data.type == "Exit" then
+				local exit = Exit(data.x, data.y)
+				exit.transparency = data.transparency
+				exit.victory = data.victory
+				table.insert(objects, exit)
+			end
+		end
+	end
 end
 
 function love.load()
@@ -41,14 +136,14 @@ function love.load()
 			"CREATE TABLE IF NOT EXISTS log (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, time_completed REAL, first_key_used TEXT, date_logged INTEGER);"
 		gDB:execute(query)
 	end
-	
+
 	myFont = love.graphics.newFont(30)
 	love.graphics.setFont(myFont)
 
 	victory = false
 	isPaused = false
 	key_map = {
-  		F4 = function()
+  		f4 = function()
     		love.event.quit()
   		end,
   		escape = function()
@@ -104,9 +199,16 @@ function love.load()
 
 	timerBox:new(20, 20, timer, "Time: ", " seconds")
 
+	pause.setSaveLoadCallbacks(saveGame, loadGame)
 end
 
 function love.update(dt)
+	if isPaused then
+		pause.update(dt, gDB)
+		isPaused = pause.resume()
+		return
+  	end
+
 	if not startUp then
 		name.update(dt)
 		playerName = name.submittedName()
@@ -115,12 +217,6 @@ function love.update(dt)
 		end
 		return
 	end
-
-	if isPaused then
-		pause.update(dt, gDB)
-		isPaused = pause.resume()
-		return
-  	end
 
 	if timerRunning then
 		timer = timer + dt

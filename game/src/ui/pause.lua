@@ -1,6 +1,10 @@
 local pause = {}
 local isPaused
 
+local saveCallback = nil
+local loadCallback = nil
+local fileName = "quicksave"
+
 local resume = {}
 local save = {}
 local load = {}
@@ -65,8 +69,8 @@ function pause.draw()
     love.graphics.printf({{1, 0.25, 0.25}, "PAUSED"}, screenWidth / 2, screenHeight / 2 - 150, screenWidth, 
 		"center", 0, 2, 2, screenWidth / 2, 0)
     love.graphics.printf({resume.color, "Resume"}, 0, resume.height, screenWidth, "center")
-	love.graphics.printf({{1, 1, 1, 0.5}, "Save"}, 0, save.height, screenWidth, "center") --save.color,
-	love.graphics.printf({{1, 1, 1, 0.5}, "Load"}, 0, load.height, screenWidth, "center") --load.color,
+	love.graphics.printf({save.color, "Save"}, 0, save.height, screenWidth, "center")
+	love.graphics.printf({load.color, "Load"}, 0, load.height, screenWidth, "center")
 	love.graphics.printf({logs.color, "Top Scores"}, 0, logs.height, screenWidth, "center")
 	love.graphics.printf({restart.color, "Restart"}, 0, restart.height, screenWidth, "center")
 	love.graphics.printf({exit.color, "Exit"}, 0, exit.height, screenWidth, "center")
@@ -108,11 +112,13 @@ resume.func = function()
 end
 
 save.func = function()
-	-- TODO
+	pause.save()
 end
 
 load.func = function()
-	-- TODO
+	if love.filesystem.getInfo(fileName .. ".txt") then
+		pause.load()
+	end
 end
 
 logs.func = function(db)
@@ -139,6 +145,26 @@ end
 
 function pause.resume()
 	return isPaused
+end
+
+-- callbacks to main.lua save and load
+function pause.setSaveLoadCallbacks(saveFn, loadFn)
+    saveCallback = saveFn
+    loadCallback = loadFn
+end
+
+function pause.save()
+    -- Just call main's save function
+	if saveCallback then
+		saveCallback(fileName)
+	end
+end
+
+function pause.load()
+    -- Just call main's load function
+	if loadCallback then
+		loadCallback(fileName)
+	end
 end
 
 return pause

@@ -12,7 +12,7 @@ end
 function Player:update(dt)
     -- It's important that we do this before changing the position
     Player.super.update(self, dt)
-
+	
     if love.keyboard.isDown("a") or love.keyboard.isDown("left") then
         self.x = self.x - self.speed * dt
     elseif love.keyboard.isDown("d") or love.keyboard.isDown("right") then
@@ -49,7 +49,8 @@ function Player:checkResolve(e, direction)
 	if e:is(Coin) then
 		e.remove = 1
 		self.hasCoin = 1
-		self.image = love.graphics.newImage("assets/character/alienYellow_square.png")
+		self.image_path = "assets/character/alienYellow_square.png"
+		self.image = love.graphics.newImage(self.image_path)
 		return false
 	end
     return true
