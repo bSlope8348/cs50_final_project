@@ -16,9 +16,11 @@ local lume = require("lib.lume")
 local pause = require("src.ui.pause")
 local timerBox = require("src.ui.scoreBox")
 local name = require("src.ui.name")
+local levels = require("src.levels")
 
 local walls, map, objects, myFont, playerName, timeCompleted, firstKey, notCompleted
-local isPaused, key_map, victory, gDB, noKeyPressedYet, timer, timerRunning, startUp, rank
+local isPaused, key_map, victory, gDB, noKeyPressedYet, timer, timerRunning, startUp, rank, currentLevel
+local nextLevelButton, restartButton
 
 local function escapeSQLString(str)
     return str:gsub("'", "''")  -- Double single quotes to escape them
@@ -35,6 +37,7 @@ local function saveGame(slotName)
 		timeCompleted = timeCompleted,
 		startUp = startUp,
 		notCompleted = notCompleted,
+		currentLevel = currentLevel,
         objects = {},  -- serialize object positions/states
         -- walls = {},    -- if needed
     }
@@ -91,6 +94,7 @@ local function loadGame(slotName)
 		timeCompleted = saveData.timeCompleted
 		startUp = saveData.startUp
 		notCompleted = saveData.notCompleted
+		currentLevel = saveData.currentLevel or 1
 		-- restore all states...
 
 		-- Recreate objects
@@ -117,66 +121,40 @@ local function loadGame(slotName)
 	end
 end
 
-function love.load()
-	love.keyboard.setKeyRepeat(true)
-
-	startUp = false
-	timer = 0
-	timerRunning = false
-	noKeyPressedYet = true
-	playerName = ""
-	timeCompleted = 0
-	firstKey = ""
-	notCompleted = true
-    rank = 0
-	--create/open game loggin database
-	local saveDir = love.filesystem.getSaveDirectory()
-    gDB = sqlite3.open(saveDir .. "/gameDB.db")
-	if gDB then
-		local query = 
-			"CREATE TABLE IF NOT EXISTS log (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, time_completed REAL, first_key_used TEXT, date_logged INTEGER);"
-		gDB:execute(query)
-	end
-
-	myFont = love.graphics.newFont(30)
-	love.graphics.setFont(myFont)
-
-	victory = false
-	isPaused = false
-	key_map = {
-  		f4 = function()
-    		love.event.quit()
-  		end,
-  		escape = function()
-    		isPaused = not isPaused
-  		end
-	}
-
+local function loadLevel(levelNum)
+	-- Clear existing entities
 	objects = {}
 	walls = {}
 
-    map = {
-        {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-        {1,0,0,0,0,2,0,0,0,0,0,0,0,3,0,1},
-        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-        {1,0,0,5,5,5,5,5,5,5,5,5,5,5,5,1},
-        {1,0,6,0,0,0,0,0,0,0,0,0,0,0,0,1},
-        {1,0,0,0,0,0,0,4,0,0,0,7,0,0,0,1},
-        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-        {1,5,5,5,5,5,5,5,5,5,5,5,5,0,0,1},
-        {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-        {1,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1},
-        {1,5,5,5,5,5,5,5,5,5,5,5,5,5,5,1}
-    }
+	-- Reset game state
+	timer = 0
+	timerRunning = false
+	noKeyPressedYet = true
+	victory = false
+	notCompleted = true
+	timeCompleted = 0
+	firstKey = ""
 
-    for i,v in ipairs(map) do
-        for j,w in ipairs(v) do
+	-- Set current level
+	currentLevel = levelNum
+
+	-- Load the level map
+	if levels[levelNum] then
+		map = levels[levelNum].map
+	else
+		-- If level doesn't exist, loop back to level 1
+		currentLevel = 1
+		map = levels[1].map
+	end
+
+	-- Parse map and create entities
+	for i,v in ipairs(map) do
+		for j,w in ipairs(v) do
 			local placement_x = (j-1)*80
 			local placement_y = (i-1)*80
-            if w == 1 then
-                table.insert(walls, Wall(placement_x, placement_y))
-            end 
+			if w == 1 then
+				table.insert(walls, Wall(placement_x, placement_y))
+			end
 			if w == 2 then
 				table.insert(objects, Player(placement_x, placement_y))
 			end
@@ -195,8 +173,65 @@ function love.load()
 			if w == 7 then
 				table.insert(objects, Coin(placement_x, placement_y))
 			end
-        end
-    end
+		end
+	end
+end
+
+function love.load()
+	love.keyboard.setKeyRepeat(true)
+
+	startUp = false
+	playerName = ""
+    rank = 0
+	--create/open game loggin database
+	local saveDir = love.filesystem.getSaveDirectory()
+    gDB = sqlite3.open(saveDir .. "/gameDB.db")
+	if gDB then
+		local query = 
+			"CREATE TABLE IF NOT EXISTS log (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, time_completed REAL, first_key_used TEXT, date_logged INTEGER);"
+		gDB:execute(query)
+	end
+
+	myFont = love.graphics.newFont(30)
+	love.graphics.setFont(myFont)
+
+	isPaused = false
+	key_map = {
+  		f4 = function()
+    		love.event.quit()
+  		end,
+  		escape = function()
+    		isPaused = not isPaused
+  		end
+	}
+
+	-- Load level 1
+	loadLevel(1)
+
+	-- Initialize victory buttons
+	local screenWidth = love.graphics.getWidth()
+	local screenHeight = love.graphics.getHeight()
+	local buttonWidth = 300
+	local buttonHeight = 60
+	local buttonSpacing = 20
+
+	nextLevelButton = {
+		x = screenWidth/2 - buttonWidth - buttonSpacing/2,
+		y = screenHeight/2 + 150,
+		width = buttonWidth,
+		height = buttonHeight,
+		text = "Next Level",
+		hover = false
+	}
+
+	restartButton = {
+		x = screenWidth/2 + buttonSpacing/2,
+		y = screenHeight/2 + 150,
+		width = buttonWidth,
+		height = buttonHeight,
+		text = "Restart",
+		hover = false
+	}
 
 	timerBox:new(20, 20, timer, "Time: ", " seconds")
 
@@ -322,12 +357,35 @@ function love.draw()
     	love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 	    -- Victory text
 		love.graphics.setColor(1, 1, 1)
-		love.graphics.printf({{0.5, 1, 0.75}, "WINNER!"}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2 - 150, 
+		love.graphics.printf({{0.5, 1, 0.75}, "WINNER!"}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2 - 150,
 			love.graphics.getWidth(), "center", 0, 4, 4, love.graphics.getWidth() / 2, 0)
-		love.graphics.printf({{1, 1, 0}, "Time: " .. string.format("%.2f", timeCompleted) .. " seconds"}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2, 
+		love.graphics.printf({{1, 1, 0}, "Time: " .. string.format("%.2f", timeCompleted) .. " seconds"}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2,
 			love.graphics.getWidth(), "center", 0, 2, 2, love.graphics.getWidth() / 2, 0)
-		love.graphics.printf({{1, 1, 1}, "Your Rank: " .. rank}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2 + 100, 
+		love.graphics.printf({{1, 1, 1}, "Your Rank: " .. rank}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2 + 100,
 			love.graphics.getWidth(), "center", 0, 1.5, 1.5, love.graphics.getWidth() / 2, 0)
+
+		-- Draw buttons
+		-- Next Level button
+		if nextLevelButton.hover then
+			love.graphics.setColor(0.3, 0.6, 0.3)
+		else
+			love.graphics.setColor(0.2, 0.5, 0.2)
+		end
+		love.graphics.rectangle("fill", nextLevelButton.x, nextLevelButton.y, nextLevelButton.width, nextLevelButton.height, 10, 10)
+		love.graphics.setColor(1, 1, 1)
+		love.graphics.rectangle("line", nextLevelButton.x, nextLevelButton.y, nextLevelButton.width, nextLevelButton.height, 10, 10)
+		love.graphics.printf(nextLevelButton.text, nextLevelButton.x, nextLevelButton.y + 15, nextLevelButton.width, "center")
+
+		-- Restart button
+		if restartButton.hover then
+			love.graphics.setColor(0.6, 0.3, 0.3)
+		else
+			love.graphics.setColor(0.5, 0.2, 0.2)
+		end
+		love.graphics.rectangle("fill", restartButton.x, restartButton.y, restartButton.width, restartButton.height, 10, 10)
+		love.graphics.setColor(1, 1, 1)
+		love.graphics.rectangle("line", restartButton.x, restartButton.y, restartButton.width, restartButton.height, 10, 10)
+		love.graphics.printf(restartButton.text, restartButton.x, restartButton.y + 15, restartButton.width, "center")
 	end
 
 	if not startUp then
@@ -378,5 +436,48 @@ end
 function love.quit()
 	if gDB and gDB:isopen() then
     	gDB:close()
+	end
+end
+
+function love.mousemoved(x, y, dx, dy)
+	if victory then
+		-- Check if mouse is over Next Level button
+		if x >= nextLevelButton.x and x <= nextLevelButton.x + nextLevelButton.width and
+		   y >= nextLevelButton.y and y <= nextLevelButton.y + nextLevelButton.height then
+			nextLevelButton.hover = true
+		else
+			nextLevelButton.hover = false
+		end
+
+		-- Check if mouse is over Restart button
+		if x >= restartButton.x and x <= restartButton.x + restartButton.width and
+		   y >= restartButton.y and y <= restartButton.y + restartButton.height then
+			restartButton.hover = true
+		else
+			restartButton.hover = false
+		end
+	end
+end
+
+function love.mousepressed(x, y, button)
+	if victory and button == 1 then -- Left click
+		-- Check if Next Level button was clicked
+		if x >= nextLevelButton.x and x <= nextLevelButton.x + nextLevelButton.width and
+		   y >= nextLevelButton.y and y <= nextLevelButton.y + nextLevelButton.height then
+			-- Load next level
+			if currentLevel < #levels then
+				loadLevel(currentLevel + 1)
+			else
+				-- Loop back to level 1
+				loadLevel(1)
+			end
+		end
+
+		-- Check if Restart button was clicked
+		if x >= restartButton.x and x <= restartButton.x + restartButton.width and
+		   y >= restartButton.y and y <= restartButton.y + restartButton.height then
+			-- Restart current level
+			loadLevel(currentLevel)
+		end
 	end
 end
