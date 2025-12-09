@@ -20,37 +20,97 @@ local showLogs = false
 local screenWidth = love.graphics.getWidth()
 local screenHeight = love.graphics.getHeight()
 
+-- Button dimensions
+local buttonWidth = 300
+local buttonHeight = 35
+local buttonBufferX = 20  -- Width buffer
+local buttonBufferY = 5   -- Height buffer (smaller to prevent overlap)
+
 resume.height = screenHeight / 2 - 50
+resume.width = buttonWidth
+resume.x = screenWidth / 2 - buttonWidth / 2
+
 save.height = screenHeight / 2
+save.width = buttonWidth
+save.x = screenWidth / 2 - buttonWidth / 2
+
 load.height = screenHeight / 2 + 50
+load.width = buttonWidth
+load.x = screenWidth / 2 - buttonWidth / 2
+
 logs.height = screenHeight / 2 + 100
+logs.width = buttonWidth
+logs.x = screenWidth / 2 - buttonWidth / 2
+
 restart.height = screenHeight / 2 + 150
+restart.width = buttonWidth
+restart.x = screenWidth / 2 - buttonWidth / 2
+
 exit.height = screenHeight / 2 + 200
+exit.width = buttonWidth
+exit.x = screenWidth / 2 - buttonWidth / 2
+
 close.height = screenHeight / 2 + 300
+close.width = buttonWidth
+close.x = screenWidth / 2 - buttonWidth / 2
+
 for i,v in ipairs(colors) do
 	v.color = {1, 1, 1}
 end
 
 local clickHandled = false
+local keyboardMode = true  -- Start in keyboard mode
+local selectedIndex = 1    -- Start with Resume selected
+local lastMouseX, lastMouseY = 0, 0
 
 function pause.update(dt, db)
-	isPaused = true
     local x, y = love.mouse.getPosition()
     local mouseDown = love.mouse.isDown(1)
-	for i,v in ipairs(colors) do
-		if y < v.height + 50 and y > v.height then
-			v.color = {0.25, 0.25, 1}
-			if mouseDown and not clickHandled then
-				if v == logs then
-					logs.func(db)
-					showLogs = true
-				else
-					v.func()
+
+	-- Detect mouse movement and switch to mouse mode
+	if x ~= lastMouseX or y ~= lastMouseY then
+		keyboardMode = false
+		lastMouseX = x
+		lastMouseY = y
+	end
+
+	-- Determine which button list to use
+	local activeButtons = showLogs and {close} or {resume, save, load, logs, restart, exit}
+
+	if keyboardMode then
+		-- Keyboard mode: highlight selected button
+		for i, v in ipairs(colors) do
+			v.color = {1, 1, 1}  -- Reset all colors
+		end
+		if selectedIndex >= 1 and selectedIndex <= #activeButtons then
+			activeButtons[selectedIndex].color = {0.25, 0.25, 1}
+		end
+	else
+		-- Mouse mode: check hover for active buttons
+		local hoveredButton = nil
+		for i, v in ipairs(activeButtons) do
+			local inXBounds = x >= (v.x - buttonBufferX) and x <= (v.x + v.width + buttonBufferX)
+			local inYBounds = y >= (v.height - buttonBufferY) and y <= (v.height + buttonHeight + buttonBufferY)
+
+			if inXBounds and inYBounds then
+				v.color = {0.25, 0.25, 1}
+				hoveredButton = v
+				-- Update selectedIndex to match hovered button for keyboard mode switching
+				selectedIndex = i
+				if mouseDown and not clickHandled then
+					if v == logs then
+						logs.func(db)
+						showLogs = true
+						selectedIndex = 1  -- Reset to close button when logs open
+						keyboardMode = true
+					else
+						v.func()
+					end
+					clickHandled = true
 				end
-				clickHandled = true
+			else
+				v.color = {1, 1, 1}
 			end
-		else
-			v.color = {1, 1, 1}
 		end
 	end
 
@@ -141,6 +201,48 @@ end
 
 close.func = function()
 	showLogs = false
+end
+
+function pause.keypressed(key, db)
+	-- Determine which button list is active
+	local activeButtons = showLogs and {close} or {resume, save, load, logs, restart, exit}
+
+	if key == "up" then
+		keyboardMode = true
+		selectedIndex = selectedIndex - 1
+		if selectedIndex < 1 then
+			selectedIndex = #activeButtons
+		end
+	elseif key == "down" then
+		keyboardMode = true
+		selectedIndex = selectedIndex + 1
+		if selectedIndex > #activeButtons then
+			selectedIndex = 1
+		end
+	elseif key == "return" or key == "space" then
+		-- Activate selected button
+		if selectedIndex >= 1 and selectedIndex <= #activeButtons then
+			local selectedButton = activeButtons[selectedIndex]
+			if selectedButton == logs then
+				logs.func(db)
+				showLogs = true
+				selectedIndex = 1  -- Reset to close button when logs open
+			elseif selectedButton == close then
+				close.func()
+				selectedIndex = 1  -- Reset to resume when closing logs
+			else
+				selectedButton.func()
+			end
+		end
+	end
+end
+
+function pause.reset()
+	-- Reset to keyboard mode with Resume selected when opening pause menu
+	keyboardMode = true
+	selectedIndex = 1
+	showLogs = false
+	isPaused = true  -- Set pause state when opening menu
 end
 
 function pause.resume()

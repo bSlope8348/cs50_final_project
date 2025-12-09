@@ -202,6 +202,9 @@ function love.load()
   		end,
   		escape = function()
     		isPaused = not isPaused
+			if isPaused then
+				pause.reset()  -- Reset to keyboard mode when opening pause menu
+			end
   		end
 	}
 
@@ -236,6 +239,9 @@ function love.load()
 	timerBox:new(20, 20, timer, "Time: ", " seconds")
 
 	pause.setSaveLoadCallbacks(saveGame, loadGame)
+
+	-- Initialize name screen to keyboard mode
+	name.reset()
 end
 
 function love.update(dt)
@@ -357,11 +363,11 @@ function love.draw()
     	love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 	    -- Victory text
 		love.graphics.setColor(1, 1, 1)
-		love.graphics.printf({{0.5, 1, 0.75}, "WINNER!"}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2 - 150,
+		love.graphics.printf({{0.5, 1, 0.75}, "VICTORY!"}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2 - 150,
 			love.graphics.getWidth(), "center", 0, 4, 4, love.graphics.getWidth() / 2, 0)
 		love.graphics.printf({{1, 1, 0}, "Time: " .. string.format("%.2f", timeCompleted) .. " seconds"}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2,
 			love.graphics.getWidth(), "center", 0, 2, 2, love.graphics.getWidth() / 2, 0)
-		love.graphics.printf({{1, 1, 1}, "Your Rank: " .. rank}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2 + 100,
+		love.graphics.printf({{1, 1, 1}, "Your Rank: " .. rank}, love.graphics.getWidth() / 2, love.graphics.getHeight() / 2 + 80,
 			love.graphics.getWidth(), "center", 0, 1.5, 1.5, love.graphics.getWidth() / 2, 0)
 
 		-- Draw buttons
@@ -402,6 +408,13 @@ function love.keypressed(key, scancode, isRepeat)
         name.keypressed(key, isRepeat)
 		return
     end
+
+	-- Handle pause menu keyboard navigation
+	if isPaused then
+		pause.keypressed(key, gDB)
+		return
+	end
+
 	if noKeyPressedYet and startUp then
 		noKeyPressedYet = false
 		firstKey = key
@@ -440,6 +453,11 @@ function love.quit()
 end
 
 function love.mousemoved(x, y, dx, dy)
+	if not startUp then
+		name.mousemoved(x, y, dx, dy)
+		return
+	end
+
 	if victory then
 		-- Check if mouse is over Next Level button
 		if x >= nextLevelButton.x and x <= nextLevelButton.x + nextLevelButton.width and
@@ -460,6 +478,11 @@ function love.mousemoved(x, y, dx, dy)
 end
 
 function love.mousepressed(x, y, button)
+	if not startUp then
+		name.mousepressed(x, y, button)
+		return
+	end
+
 	if victory and button == 1 then -- Left click
 		-- Check if Next Level button was clicked
 		if x >= nextLevelButton.x and x <= nextLevelButton.x + nextLevelButton.width and
@@ -479,5 +502,12 @@ function love.mousepressed(x, y, button)
 			-- Restart current level
 			loadLevel(currentLevel)
 		end
+	end
+end
+
+function love.mousereleased(x, y, button)
+	if not startUp then
+		name.mousereleased(x, y, button)
+		return
 	end
 end

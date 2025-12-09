@@ -33,7 +33,57 @@ field:setDimensions(FIELD_INNER_WIDTH, FIELD_INNER_HEIGHT)
 
 local MAX_NAME_LENGTH = 20
 
+local submit = {}
+local clear = {}
+local fields = {submit, clear}
+
+-- Button dimensions
+local buttonWidth = 300
+local buttonHeight = 35
+local buttonBufferX = 20
+local buttonBufferY = 5
+
+submit.height = love.graphics.getHeight() / 2
+submit.width = buttonWidth
+submit.x = love.graphics.getWidth() / 2 - buttonWidth / 2
+
+clear.height = love.graphics.getHeight() / 2 + 50
+clear.width = buttonWidth
+clear.x = love.graphics.getWidth() / 2 - buttonWidth / 2
+
+for i,v in ipairs(fields) do
+	v.color = {1, 1, 1}
+end
+
+local keyboardMode = true  -- Start in keyboard mode
+local selectedIndex = 1    -- Start with Submit selected
+local lastMouseX, lastMouseY = 0, 0
+
 function name.keypressed(key, isRepeat)
+    -- Handle button navigation
+    if key == "up" then
+		keyboardMode = true
+		selectedIndex = selectedIndex - 1
+		if selectedIndex < 1 then
+			selectedIndex = #fields
+		end
+		return
+	elseif key == "down" then
+		keyboardMode = true
+		selectedIndex = selectedIndex + 1
+		if selectedIndex > #fields then
+			selectedIndex = 1
+		end
+		return
+	elseif key == "return" then
+		-- Activate selected button
+		if selectedIndex >= 1 and selectedIndex <= #fields then
+			fields[selectedIndex].func()
+		end
+		return
+	end
+
+	-- Pass other keys to the text field
     field:keypressed(key, isRepeat)
 end
 
@@ -43,29 +93,19 @@ function name.textinput(text)
     end
 end
 
-function love.mousepressed(mx, my, mbutton, pressCount)
+function name.mousepressed(mx, my, mbutton, pressCount)
 	field:mousepressed(mx-FIELD_INNER_X, my-FIELD_INNER_Y, mbutton, pressCount)
 end
 
-function love.mousemoved(mx, my, dx, dy)
+function name.mousemoved(mx, my, dx, dy)
 	field:mousemoved(mx-FIELD_INNER_X, my-FIELD_INNER_Y)
 end
 
-function love.mousereleased(mx, my, mbutton, pressCount)
+function name.mousereleased(mx, my, mbutton, pressCount)
 	field:mousereleased(mx-FIELD_INNER_X, my-FIELD_INNER_Y, mbutton)
 end
 -----------------------------------------
 
-local submit = {}
-local clear = {}
-local fields = {submit, clear}
-
-submit.height = love.graphics.getHeight() / 2
-clear.height = love.graphics.getHeight() / 2 + 50
-
-for i,v in ipairs(fields) do
-	v.color = {1, 1, 1}
-end
 
 function name.update(dt)
 	----------------------------
@@ -73,14 +113,37 @@ function name.update(dt)
 	---------------------------
 
 	local x, y = love.mouse.getPosition()
-	for i,v in ipairs(fields) do
-		if y < v.height + 50 and y > v.height then
-			v.color = {0.25, 0.25, 1}
-			if love.mouse.isDown(1) then
-				v.func()
+
+	-- Detect mouse movement and switch to mouse mode
+	if x ~= lastMouseX or y ~= lastMouseY then
+		keyboardMode = false
+		lastMouseX = x
+		lastMouseY = y
+	end
+
+	if keyboardMode then
+		-- Keyboard mode: highlight selected button
+		for i, v in ipairs(fields) do
+			v.color = {1, 1, 1}  -- Reset all colors
+		end
+		if selectedIndex >= 1 and selectedIndex <= #fields then
+			fields[selectedIndex].color = {0.25, 0.25, 1}
+		end
+	else
+		-- Mouse mode: check hover
+		for i, v in ipairs(fields) do
+			local inXBounds = x >= (v.x - buttonBufferX) and x <= (v.x + v.width + buttonBufferX)
+			local inYBounds = y >= (v.height - buttonBufferY) and y <= (v.height + buttonHeight + buttonBufferY)
+
+			if inXBounds and inYBounds then
+				v.color = {0.25, 0.25, 1}
+				selectedIndex = i  -- Update selectedIndex for keyboard mode switching
+				if love.mouse.isDown(1) then
+					v.func()
+				end
+			else
+				v.color = {1, 1, 1}
 			end
-		else
-			v.color = {1, 1, 1}
 		end
 	end
 end
@@ -137,6 +200,12 @@ end
 
 function name.ready()
 	return ready
+end
+
+function name.reset()
+	-- Reset to keyboard mode with Submit selected
+	keyboardMode = true
+	selectedIndex = 1
 end
 
 submit.func = function()
