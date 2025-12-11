@@ -113,12 +113,16 @@ function pause.update(dt, db)
 				selectedIndex = i
 				if mouseDown and not clickHandled then
 					if v == logs then
+						-- Set viewLevel to current game level when opening logs
+						viewLevel = currentGameLevel
 						logs.func(db)
 						showLogs = true
 						selectedIndex = 3  -- Reset to close button when logs open (close is index 3)
 						keyboardMode = true
-					elseif v == prevLevel or v == nextLevel then
-						v.func(db)
+					elseif v == prevLevel then
+						prevLevel.func(db)
+					elseif v == nextLevel then
+						nextLevel.func(db)
 					else
 						v.func()
 					end
@@ -231,8 +235,6 @@ load.func = function()
 end
 
 logs.func = function(db)
-	-- Set viewLevel to current game level when opening logs
-	viewLevel = currentGameLevel
 	if db and db:isopen() then
 		local query
 		if viewLevel == 0 then
