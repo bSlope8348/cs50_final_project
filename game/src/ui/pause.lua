@@ -1,3 +1,4 @@
+-- TODO the scores screens doesn't change to other levels times when selected 
 local pause = {}
 local isPaused
 
@@ -12,10 +13,14 @@ local logs = {}
 local restart = {}
 local exit = {}
 local close = {}
-local colors = {resume, save, load, logs, restart, exit, close}
+local prevLevel = {}
+local nextLevel = {}
+local colors = {resume, save, load, logs, restart, exit, close, prevLevel, nextLevel}
 
 local results = {}
 local showLogs = false
+local viewLevel = 1  -- Which level's scores to display (1-5) or 0 for totals
+local currentGameLevel = 1  -- The level the player is currently on
 
 local screenWidth = love.graphics.getWidth()
 local screenHeight = love.graphics.getHeight()
@@ -54,6 +59,15 @@ close.height = screenHeight / 2 + 300
 close.width = buttonWidth
 close.x = screenWidth / 2 - buttonWidth / 2
 
+-- Navigation buttons for log view
+prevLevel.height = screenHeight / 2 - 300
+prevLevel.width = 150
+prevLevel.x = 50
+
+nextLevel.height = screenHeight / 2 - 300
+nextLevel.width = 150
+nextLevel.x = screenWidth - 200
+
 for i,v in ipairs(colors) do
 	v.color = {1, 1, 1}
 end
@@ -75,7 +89,7 @@ function pause.update(dt, db)
 	end
 
 	-- Determine which button list to use
-	local activeButtons = showLogs and {close} or {resume, save, load, logs, restart, exit}
+	local activeButtons = showLogs and {prevLevel, nextLevel, close} or {resume, save, load, logs, restart, exit}
 
 	if keyboardMode then
 		-- Keyboard mode: highlight selected button
@@ -101,8 +115,10 @@ function pause.update(dt, db)
 					if v == logs then
 						logs.func(db)
 						showLogs = true
-						selectedIndex = 1  -- Reset to close button when logs open
+						selectedIndex = 3  -- Reset to close button when logs open (close is index 3)
 						keyboardMode = true
+					elseif v == prevLevel or v == nextLevel then
+						v.func(db)
 					else
 						v.func()
 					end
@@ -139,30 +155,63 @@ function pause.draw()
 		love.graphics.setColor(0, 0, 0, 0.9)
     	love.graphics.rectangle("fill", 0, 0, screenWidth, screenHeight)
 		love.graphics.setColor(1, 1, 1)
-		love.graphics.printf({{.25, 1, 0.25}, "Top Scores"}, screenWidth / 2, screenHeight / 2 - 375, screenWidth, 
+
+		-- Title showing current view
+		local titleText = viewLevel == 0 and "Top Scores - Total Times" or string.format("Top Scores - Level %d", viewLevel)
+		love.graphics.printf({{.25, 1, 0.25}, titleText}, screenWidth / 2, screenHeight / 2 - 375, screenWidth,
 			"center", 0, 2, 2, screenWidth / 2, 0)
-		love.graphics.printf("Rank:", 0, screenHeight / 2 - 300, screenWidth - 900, "center")
-		love.graphics.printf("Name:", 0, screenHeight / 2 - 300, screenWidth - 600, "center")
-		love.graphics.printf("Time Completed:", 0, screenHeight / 2 - 300, screenWidth-200, "center")
-		love.graphics.printf("First Move:", 0, screenHeight / 2 - 300, screenWidth+200, "center")
-		love.graphics.printf("Date:", 0, screenHeight / 2 - 300, screenWidth + 600, "center")
-		for i,row in ipairs(results) do
-			love.graphics.printf(i, 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth - 900, "center")
-			for key, value in pairs(row) do
-				if key == "name" then
-					local str = value
-					local limited = str:sub(1, 20)
-					love.graphics.printf(limited, 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth - 600, "center")
-				elseif key == "time_completed" then
-					local formatted = string.format("%.4f sec", value)
-					love.graphics.printf(formatted, 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth - 200, "center")
-				elseif key == "first_key_used" then
-					love.graphics.printf(value, 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth + 200, "center")
-				elseif key == "date_logged" then
-					love.graphics.printf(os.date("%Y-%m-%d %H:%M:%S", value), 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth+600, "center")
+
+		-- Navigation buttons
+		love.graphics.printf({prevLevel.color, "< Previous"}, 0, prevLevel.height, 200, "center")
+		love.graphics.printf({nextLevel.color, "Next >"}, screenWidth - 200, nextLevel.height, 200, "center")
+
+		if viewLevel == 0 then
+			-- Display totals view
+			love.graphics.printf("Rank:", 0, screenHeight / 2 - 300, screenWidth - 900, "center")
+			love.graphics.printf("Name:", 0, screenHeight / 2 - 300, screenWidth - 600, "center")
+			love.graphics.printf("Total Time:", 0, screenHeight / 2 - 300, screenWidth-200, "center")
+			love.graphics.printf("Date:", 0, screenHeight / 2 - 300, screenWidth + 600, "center")
+			for i,row in ipairs(results) do
+				love.graphics.printf(i, 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth - 900, "center")
+				for key, value in pairs(row) do
+					if key == "name" then
+						local str = value
+						local limited = str:sub(1, 20)
+						love.graphics.printf(limited, 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth - 600, "center")
+					elseif key == "total_time" then
+						local formatted = string.format("%.4f sec", value)
+						love.graphics.printf(formatted, 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth - 200, "center")
+					elseif key == "date_logged" then
+						love.graphics.printf(os.date("%Y-%m-%d %H:%M:%S", value), 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth+600, "center")
+					end
+				end
+			end
+		else
+			-- Display level-specific view
+			love.graphics.printf("Rank:", 0, screenHeight / 2 - 300, screenWidth - 900, "center")
+			love.graphics.printf("Name:", 0, screenHeight / 2 - 300, screenWidth - 600, "center")
+			love.graphics.printf("Time Completed:", 0, screenHeight / 2 - 300, screenWidth-200, "center")
+			love.graphics.printf("First Move:", 0, screenHeight / 2 - 300, screenWidth+200, "center")
+			love.graphics.printf("Date:", 0, screenHeight / 2 - 300, screenWidth + 600, "center")
+			for i,row in ipairs(results) do
+				love.graphics.printf(i, 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth - 900, "center")
+				for key, value in pairs(row) do
+					if key == "name" then
+						local str = value
+						local limited = str:sub(1, 20)
+						love.graphics.printf(limited, 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth - 600, "center")
+					elseif key == "time_completed" then
+						local formatted = string.format("%.4f sec", value)
+						love.graphics.printf(formatted, 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth - 200, "center")
+					elseif key == "first_key_used" then
+						love.graphics.printf(value, 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth + 200, "center")
+					elseif key == "date_logged" then
+						love.graphics.printf(os.date("%Y-%m-%d %H:%M:%S", value), 0, screenHeight / 2 - 250 + (i-1) * 50, screenWidth+600, "center")
+					end
 				end
 			end
 		end
+
 		love.graphics.printf({close.color, "Close"}, 0, screenHeight / 2 + 300, screenWidth, "center")
 	end
 end
@@ -182,8 +231,17 @@ load.func = function()
 end
 
 logs.func = function(db)
+	-- Set viewLevel to current game level when opening logs
+	viewLevel = currentGameLevel
 	if db and db:isopen() then
-		local query = "SELECT * FROM log WHERE time_completed > 0 AND time_completed IS NOT NULL ORDER BY time_completed ASC LIMIT 10;"
+		local query
+		if viewLevel == 0 then
+			-- Show totals
+			query = "SELECT * FROM log_totals WHERE total_time > 0 AND total_time IS NOT NULL ORDER BY total_time ASC LIMIT 10;"
+		else
+			-- Show specific level
+			query = string.format("SELECT * FROM log_level%d WHERE time_completed > 0 AND time_completed IS NOT NULL ORDER BY time_completed ASC LIMIT 10;", viewLevel)
+		end
 		results = {}
 		for row in db:nrows(query) do
 			table.insert(results, row)
@@ -203,9 +261,29 @@ close.func = function()
 	showLogs = false
 end
 
+prevLevel.func = function(db)
+	-- Cycle to previous level/view: 5 -> 4 -> 3 -> 2 -> 1 -> Totals(0) -> 5
+	viewLevel = viewLevel - 1
+	if viewLevel < 0 then
+		viewLevel = 5
+	end
+	-- Refresh query
+	logs.func(db)
+end
+
+nextLevel.func = function(db)
+	-- Cycle to next level/view: 1 -> 2 -> 3 -> 4 -> 5 -> Totals(0) -> 1
+	viewLevel = viewLevel + 1
+	if viewLevel > 5 then
+		viewLevel = 0
+	end
+	-- Refresh query
+	logs.func(db)
+end
+
 function pause.keypressed(key, db)
 	-- Determine which button list is active
-	local activeButtons = showLogs and {close} or {resume, save, load, logs, restart, exit}
+	local activeButtons = showLogs and {prevLevel, nextLevel, close} or {resume, save, load, logs, restart, exit}
 
 	if key == "up" then
 		keyboardMode = true
@@ -226,10 +304,12 @@ function pause.keypressed(key, db)
 			if selectedButton == logs then
 				logs.func(db)
 				showLogs = true
-				selectedIndex = 1  -- Reset to close button when logs open
+				selectedIndex = 3  -- Reset to close button when logs open (close is index 3)
 			elseif selectedButton == close then
 				close.func()
 				selectedIndex = 1  -- Reset to resume when closing logs
+			elseif selectedButton == prevLevel or selectedButton == nextLevel then
+				selectedButton.func(db)
 			else
 				selectedButton.func()
 			end
@@ -243,6 +323,10 @@ function pause.reset()
 	selectedIndex = 1
 	showLogs = false
 	isPaused = true  -- Set pause state when opening menu
+end
+
+function pause.setCurrentLevel(level)
+	currentGameLevel = level
 end
 
 function pause.resume()

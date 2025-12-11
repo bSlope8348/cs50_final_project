@@ -20,10 +20,73 @@ local levels = require("src.levels")
 
 local walls, map, objects, myFont, playerName, timeCompleted, firstKey, notCompleted
 local isPaused, key_map, victory, gDB, noKeyPressedYet, timer, timerRunning, startUp, rank, currentLevel
-local nextLevelButton, restartButton
+local nextLevelButton, restartButton, playerID
 
 local function escapeSQLString(str)
     return str:gsub("'", "''")  -- Double single quotes to escape them
+end
+
+local function updateTotalTimes(db, pid, name)
+	-- Check if player has completed all levels and update totals table
+	if not db or not db:isopen() or not pid then return end
+
+	local levelTimes = {}
+	local hasAllLevels = true
+
+	-- Get the best time for each level for this player
+	for i = 1, #levels do
+		local query = string.format(
+			"SELECT MIN(time_completed) as best_time FROM log_level%d WHERE player_id = '%s' AND time_completed > 0 AND time_completed IS NOT NULL",
+			i, escapeSQLString(pid)
+		)
+		local bestTime = nil
+		for row in db:nrows(query) do
+			bestTime = row.best_time
+			break
+		end
+
+		if bestTime then
+			levelTimes[i] = bestTime
+		else
+			hasAllLevels = false
+			break
+		end
+	end
+
+	-- If player has completed all levels, update totals table
+	if hasAllLevels then
+		local totalTime = 0
+		for i = 1, #levels do
+			totalTime = totalTime + levelTimes[i]
+		end
+
+		-- Check if player already has a record in totals
+		local existingQuery = string.format(
+			"SELECT id FROM log_totals WHERE player_id = '%s'",
+			escapeSQLString(pid)
+		)
+		local hasRecord = false
+		for row in db:nrows(existingQuery) do
+			hasRecord = true
+			break
+		end
+
+		if hasRecord then
+			-- Update existing record if new total is better
+			local updateQuery = string.format(
+				"UPDATE log_totals SET name = '%s', total_time = %f, level1_time = %f, level2_time = %f, level3_time = %f, level4_time = %f, level5_time = %f, date_logged = %d WHERE player_id = '%s' AND (total_time IS NULL OR total_time > %f)",
+				escapeSQLString(name), totalTime, levelTimes[1], levelTimes[2], levelTimes[3], levelTimes[4], levelTimes[5], os.time(), escapeSQLString(pid), totalTime
+			)
+			db:execute(updateQuery)
+		else
+			-- Insert new record
+			local insertQuery = string.format(
+				"INSERT INTO log_totals (player_id, name, total_time, level1_time, level2_time, level3_time, level4_time, level5_time, date_logged) VALUES ('%s', '%s', %f, %f, %f, %f, %f, %f, %d)",
+				escapeSQLString(pid), escapeSQLString(name), totalTime, levelTimes[1], levelTimes[2], levelTimes[3], levelTimes[4], levelTimes[5], os.time()
+			)
+			db:execute(insertQuery)
+		end
+	end
 end
 
 local function saveGame(slotName)
@@ -32,6 +95,7 @@ local function saveGame(slotName)
         timerRunning = timerRunning,
         victory = victory,
         playerName = playerName,
+        playerID = playerID,
         firstKey = firstKey,
         noKeyPressedYet = noKeyPressedYet,
 		timeCompleted = timeCompleted,
@@ -89,6 +153,7 @@ local function loadGame(slotName)
 		timerRunning = saveData.timerRunning
 		victory = saveData.victory
 		playerName = saveData.playerName
+		playerID = saveData.playerID
         firstKey = saveData.firstKey
         noKeyPressedYet = saveData.noKeyPressedYet
 		timeCompleted = saveData.timeCompleted
@@ -183,13 +248,24 @@ function love.load()
 	startUp = false
 	playerName = ""
     rank = 0
+
 	--create/open game loggin database
 	local saveDir = love.filesystem.getSaveDirectory()
     gDB = sqlite3.open(saveDir .. "/gameDB.db")
 	if gDB then
-		local query = 
-			"CREATE TABLE IF NOT EXISTS log (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, time_completed REAL, first_key_used TEXT, date_logged INTEGER);"
-		gDB:execute(query)
+		-- Create a table for each level
+		for i = 1, #levels do
+			local query = string.format(
+				"CREATE TABLE IF NOT EXISTS log_level%d (id INTEGER PRIMARY KEY AUTOINCREMENT, player_id TEXT, name TEXT, time_completed REAL, first_key_used TEXT, date_logged INTEGER);",
+				i
+			)
+			gDB:execute(query)
+		end
+
+		-- Create totals table for players who complete all levels
+		local totalsQuery =
+			"CREATE TABLE IF NOT EXISTS log_totals (id INTEGER PRIMARY KEY AUTOINCREMENT, player_id TEXT, name TEXT, total_time REAL, level1_time REAL, level2_time REAL, level3_time REAL, level4_time REAL, level5_time REAL, date_logged INTEGER);"
+		gDB:execute(totalsQuery)
 	end
 
 	myFont = love.graphics.newFont(30)
@@ -204,6 +280,7 @@ function love.load()
     		isPaused = not isPaused
 			if isPaused then
 				pause.reset()  -- Reset to keyboard mode when opening pause menu
+				pause.setCurrentLevel(currentLevel)  -- Pass current level to pause menu
 			end
   		end
 	}
@@ -255,6 +332,11 @@ function love.update(dt)
 		name.update(dt)
 		playerName = name.submittedName()
 		if name.ready() then
+			-- Generate unique player ID (timestamp + random number)
+			if not playerID then
+				math.randomseed(os.time())
+				playerID = string.format("%d_%d", os.time(), math.random(100000, 999999))
+			end
 			startUp = true
 		end
 		return
@@ -324,21 +406,27 @@ function love.update(dt)
 			if victory and notCompleted then
 				timeCompleted = timer
 				if gDB and gDB:isopen() then
+					-- Insert into the appropriate level table
+					local tableName = "log_level" .. currentLevel
 					local iQuery = string.format(
-						"INSERT INTO log (name, time_completed, first_key_used, date_logged) VALUES ('%s', %f, '%s', %d)",
-						escapeSQLString(playerName), timeCompleted, escapeSQLString(firstKey), os.time()
+						"INSERT INTO %s (player_id, name, time_completed, first_key_used, date_logged) VALUES ('%s', '%s', %f, '%s', %d)",
+						tableName, escapeSQLString(playerID), escapeSQLString(playerName), timeCompleted, escapeSQLString(firstKey), os.time()
 					)
 					gDB:execute(iQuery)
 
+					-- Calculate rank for this level
 					local rQuery = string.format(
-						"SELECT COUNT(*) as rank FROM log WHERE time_completed > 0 AND time_completed < %f AND time_completed IS NOT NULL",
-						timeCompleted
+						"SELECT COUNT(*) as rank FROM %s WHERE time_completed > 0 AND time_completed < %f AND time_completed IS NOT NULL",
+						tableName, timeCompleted
 					)
 					rank = 0
 					for row in gDB:nrows(rQuery) do
 						rank = row.rank + 1
 						break  -- Only one row expected
 					end
+
+					-- Update total times if player has completed all levels
+					updateTotalTimes(gDB, playerID, playerName)
 				end
 				notCompleted = false
 			end
@@ -443,6 +531,8 @@ end
 function love.focus(f)
 	if not f then
 		isPaused = true
+		pause.reset()
+		pause.setCurrentLevel(currentLevel)
 	end
 end
 
