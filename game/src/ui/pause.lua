@@ -1,4 +1,3 @@
--- TODO the scores screens doesn't change to other levels times when selected 
 local pause = {}
 local isPaused
 
