@@ -341,7 +341,6 @@ function love.update(dt)
 
 				-- Get id
 				playerID = gDB:last_insert_rowid()
-				print(playerID)
 				startUp = true
 			end
 		end
@@ -419,7 +418,6 @@ function love.update(dt)
 						tableName, playerID, escapeSQLString(playerName), timeCompleted, escapeSQLString(firstKey), os.time()
 					)
 					gDB:execute(iQuery)
-					print(playerID)
 					-- Calculate rank for this level
 					local rQuery = string.format(
 						"SELECT COUNT(*) as rank FROM %s WHERE time_completed > 0 AND time_completed < %f AND time_completed IS NOT NULL",
