@@ -10,7 +10,8 @@ require("src.exit")
 require("src.floor")
 require("src.thruFloor")
 require("src.coin")
-require("src.ui.victory")
+
+local victoryScreen = require("src.ui.victory")
 
 local lume = require("lib.lume")
 
@@ -21,7 +22,7 @@ local levels = require("src.levels")
 
 local walls, map, objects, myFont, playerName, timeCompleted, firstKey, notCompleted
 local isPaused, key_map, victory, gDB, noKeyPressedYet, timer, timerRunning, startUp, rank, currentLevel
-local nextLevelButton, restartButton, playerID
+local playerID
 
 local function escapeSQLString(str)
     return str:gsub("'", "''")  -- Double single quotes to escape them
@@ -288,31 +289,6 @@ function love.load()
 	-- Load level 1
 	loadLevel(1)
 
-	-- Initialize victory buttons
-	local screenWidth = love.graphics.getWidth()
-	local screenHeight = love.graphics.getHeight()
-	local buttonWidth = 300
-	local buttonHeight = 60
-	local buttonSpacing = 20
-
-	nextLevelButton = {
-		x = screenWidth/2 - buttonWidth - buttonSpacing/2,
-		y = screenHeight/2 + 150,
-		width = buttonWidth,
-		height = buttonHeight,
-		text = "Next Level",
-		hover = false
-	}
-
-	restartButton = {
-		x = screenWidth/2 + buttonSpacing/2,
-		y = screenHeight/2 + 150,
-		width = buttonWidth,
-		height = buttonHeight,
-		text = "Restart",
-		hover = false
-	}
-
 	timerBox:new(20, 20, timer, "Time: ", " seconds")
 
 	pause.setSaveLoadCallbacks(saveGame, loadGame)
@@ -342,7 +318,6 @@ function love.update(dt)
 
 				-- Get id
 				playerID = gDB:last_insert_rowid()
-				print(playerID)
 				startUp = true
 			end
 		end
@@ -420,7 +395,6 @@ function love.update(dt)
 						tableName, playerID, escapeSQLString(playerName), timeCompleted, escapeSQLString(firstKey), os.time()
 					)
 					gDB:execute(iQuery)
-					print(playerID)
 					-- Calculate rank for this level
 					local rQuery = string.format(
 						"SELECT COUNT(*) as rank FROM %s WHERE time_completed > 0 AND time_completed < %f AND time_completed IS NOT NULL",
@@ -453,7 +427,7 @@ function love.draw()
 	timerBox:draw()
 
 	if victory then
-		victory.draw(rank, timeCompleted)
+		victoryScreen.draw(rank, timeCompleted)
 	end
 
 	if not startUp then
@@ -523,21 +497,7 @@ function love.mousemoved(x, y, dx, dy)
 	end
 
 	if victory then
-		-- Check if mouse is over Next Level button
-		if x >= nextLevelButton.x and x <= nextLevelButton.x + nextLevelButton.width and
-		   y >= nextLevelButton.y and y <= nextLevelButton.y + nextLevelButton.height then
-			nextLevelButton.hover = true
-		else
-			nextLevelButton.hover = false
-		end
-
-		-- Check if mouse is over Restart button
-		if x >= restartButton.x and x <= restartButton.x + restartButton.width and
-		   y >= restartButton.y and y <= restartButton.y + restartButton.height then
-			restartButton.hover = true
-		else
-			restartButton.hover = false
-		end
+		victoryScreen.mousemoved(x, y)
 	end
 end
 
@@ -547,10 +507,9 @@ function love.mousepressed(x, y, button)
 		return
 	end
 
-	if victory and button == 1 then -- Left click
-		-- Check if Next Level button was clicked
-		if x >= nextLevelButton.x and x <= nextLevelButton.x + nextLevelButton.width and
-		   y >= nextLevelButton.y and y <= nextLevelButton.y + nextLevelButton.height then
+	if victory then
+		local action = victoryScreen.mousepressed(x, y, button, currentLevel, #levels)
+		if action == "next" then
 			-- Load next level
 			if currentLevel < #levels then
 				loadLevel(currentLevel + 1)
@@ -558,11 +517,7 @@ function love.mousepressed(x, y, button)
 				-- Loop back to level 1
 				loadLevel(1)
 			end
-		end
-
-		-- Check if Restart button was clicked
-		if x >= restartButton.x and x <= restartButton.x + restartButton.width and
-		   y >= restartButton.y and y <= restartButton.y + restartButton.height then
+		elseif action == "restart" then
 			-- Restart current level
 			loadLevel(currentLevel)
 		end

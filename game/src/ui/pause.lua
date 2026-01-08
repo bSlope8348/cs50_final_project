@@ -250,6 +250,7 @@ logs.func = function(db)
 	end
 end
 
+-- TODO change to restarting level instead of game, follow victory.lua
 restart.func = function()
 	love.event.quit("restart")
 end
