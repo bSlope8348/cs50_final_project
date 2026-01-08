@@ -134,8 +134,60 @@ cs50_final_project
 -	**InputField.lua**: Used for simple text input fields from the user.
 -	**sqlite3.lua**: A library used to handle SQLite3 databases in Lua. 
 
-### Building the Game:
-**makelove** is a packaging tool for love games that was used to build the source code into executables for different platforms. 
+## Development Setup
+
+### Prerequisites
+
+To develop or build from source, you'll need:
+
+- **LÖVE2d** (version 11.4) - [Download](https://love2d.org/)
+- **Node.js** (with npm) - [Download](https://nodejs.org/)
+- **Python** (with pip) - [Download](https://www.python.org/downloads/)
+  - If doing a custom installation, make sure to install pip
+- **makelove** - A packaging tool for LÖVE games. Install via terminal:
+  ```bash
+  pip3 install makelove
+  ```
+
+The project includes a pre-configured `tools/build/makelove.toml` with build settings for win32, win64, macos, and lovejs targets.
+
+### VS Code Extensions
+
+Install the following extensions for development:
+
+- **Lua** by sumneko
+- **Local Lua Debugger** by Tom Blind
+
+### Running from Source
+
+From the `game/` directory:
+```bash
+lovec .
+```
+
+Or using npm scripts from the `tools/` directory:
+```bash
+npm run Run
+```
+
+### Building Executables
+
+1. Install npm dependencies (first time only):
+   ```bash
+   cd tools
+   npm install
+   ```
+
+2. Build for all platforms:
+   ```bash
+   npm run Build
+   ```
+
+This creates builds in `builds/` for Windows (32/64-bit), macOS, and web (lovejs).
+
+**Note:** Linux AppImage builds require running makelove from WSL2.
+
+Build configuration is located in `tools/build/makelove.toml`.
 
 ## Known Bugs
 Collision between objects was found to be particularly difficult to solve. Most collisions are functioning properly, but it has been found that if there are multiple playable characters interacting with a box that sometimes one character may be able to push the box through the other character causing that character to "pop" out of the box. This is rare but possible. 
