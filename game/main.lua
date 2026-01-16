@@ -507,6 +507,13 @@ function love.mousepressed(x, y, button)
 		return
 	end
 
+	if isPaused then
+		if pause.restart() then
+			-- Restart current level
+			loadLevel(currentLevel)
+		end
+	end
+
 	if victory then
 		local action = victoryScreen.mousepressed(x, y, button, currentLevel, #levels)
 		if action == "next" then

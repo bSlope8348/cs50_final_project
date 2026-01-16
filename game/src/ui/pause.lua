@@ -49,6 +49,7 @@ logs.x = screenWidth / 2 - buttonWidth / 2
 restart.height = screenHeight / 2 + 150
 restart.width = buttonWidth
 restart.x = screenWidth / 2 - buttonWidth / 2
+restart.clicked = false
 
 exit.height = screenHeight / 2 + 200
 exit.width = buttonWidth
@@ -151,7 +152,7 @@ function pause.draw()
 	love.graphics.printf({save.color, "Save"}, 0, save.height, screenWidth, "center")
 	love.graphics.printf({load.color, "Load"}, 0, load.height, screenWidth, "center")
 	love.graphics.printf({logs.color, "Top Scores"}, 0, logs.height, screenWidth, "center")
-	love.graphics.printf({restart.color, "Restart"}, 0, restart.height, screenWidth, "center")
+	love.graphics.printf({restart.color, "Restart Level"}, 0, restart.height, screenWidth, "center")
 	love.graphics.printf({exit.color, "Exit"}, 0, exit.height, screenWidth, "center")
 
 	if showLogs then
@@ -252,7 +253,7 @@ end
 
 -- TODO change to restarting level instead of game, follow victory.lua
 restart.func = function()
-	love.event.quit("restart")
+	restart.clicked = true
 end
 
 exit.func = function()
@@ -353,6 +354,10 @@ function pause.load()
 	if loadCallback then
 		loadCallback(fileName)
 	end
+end
+
+function pause.restart()
+	return restart.clicked
 end
 
 return pause
