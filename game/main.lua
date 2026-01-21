@@ -1,10 +1,7 @@
 local IS_WEB = love.system.getOS() == "Web"
-print(love.system.getOS())
-
 if not IS_WEB then
     require("lib.sqlite3")
 end
-
 
 Object = require("lib.classic")
 

@@ -13,13 +13,13 @@ This project was created to learn the coding language Lua, learn how to make a 2
 
 -	More than one level was originally in the scope but was cut for purposes of time. This could be implemented in the future to allow a proper tutorial experience for the player, a proper explanation of the controls, or for multiple levels and leaderboards. 
 
-The final project contains a playable build (for Windows32/64, Web, MacOS, and Linux) and all of the source code. Version 1.2 of the game is the final version submitted. 
+The final project contains a playable build (for Windows32/64, Web, MacOS, and Linux(needs built in a linux environment)) and all of the source code. Version 1.5 of the game is the final version submitted. 
 
 ### Running the Game:
 
 Windows Example: 
 
-The builds folder for version 1.2 (...\cs50_final_project\builds\1.2) contains the executables. For a Windows 64-bit system, if LÖVE is already installed on the system then the file "JumpSim.love" can be run inside the "love" sub-folder. Otherwise, the file "JumpSim-win64.zip" inside the sub-folder "win64" must be unzipped and then run the file "JumpSim.exe".
+The if cloned the builds folder for version 1.5 (...\cs50_final_project\builds\1.5) contains the executables. For a Windows 64-bit system, if LÖVE is already installed on the system then the file "JumpSim.love" can be run inside the "love" sub-folder. Otherwise, the file "JumpSim-win64.zip" inside the sub-folder "win64" must be unzipped and then run the file "JumpSim.exe". The latest release can be found in the Releases section of this repo. 
 
 On Windows this will create a sub-directory in the user's profile: ...\user\AppData\Roaming\LOVE\JumpSim
 
@@ -113,7 +113,10 @@ cs50_final_project
 ├── /Builds				Contains the builds of game made with makelove
 │   ├── /1.0			version 1.0 build for lovejs, macos, win32, win64
 │   ├── /1.1			version 1.1 build for linux
-│   └── /1.2			version 1.2 (final) build for lovejs, macos, win32, win64
+│   ├── /1.2			version 1.2 build for lovejs, macos, win32, win64
+│   ├── /1.3			version 1.3 complete with proper restart of level in pause menu
+│   ├── /1.4			version 1.4 broken
+│   └── /1.5			version 1.5 (final) removes SQL leaderboard from the web version as it is not supported there (lovejs, macos, win32, win64)
 │
 └── Root				Root access to the workspace
 ```
