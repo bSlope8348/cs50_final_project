@@ -25,6 +25,12 @@ On Windows this will create a sub-directory in the user's profile: ...\user\AppD
 
 In this folder is where the database "gameDB.db" and save file "quicksave.txt" will be stored.
 
+Current built release: https://github.com/bSlope8348/cs50_final_project/releases
+
+Web:
+
+A playable web browser version of the lastest release can be found at https://bslope8348.github.io/cs50_final_project/ Note: The web version currently has no leaderboard as the SQL database is only supported on the desktop version.  
+
 ## The Game
 The game starts with asking for the current player's name and then allows the player to figure out how to play on their own. Upon trial and error, the player will find two playable characters, a coin, a movable box, and a grayed out exit. There are also walls and floors to the level. The latter of which has multiple options (one of which the player can fall through). 
 
