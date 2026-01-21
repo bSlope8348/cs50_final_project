@@ -1,4 +1,10 @@
-require("lib.sqlite3")
+local IS_WEB = love.system.getOS() == "Web"
+print(love.system.getOS())
+
+if not IS_WEB then
+    require("lib.sqlite3")
+end
+
 
 Object = require("lib.classic")
 
@@ -252,21 +258,26 @@ function love.load()
     rank = 0
 
 	--create/open game loggin database
-	local saveDir = love.filesystem.getSaveDirectory()
-    gDB = sqlite3.open(saveDir .. "/gameDB.db")
-	if gDB then
-		-- Create totals table for players who complete all levels
-		local totalsQuery =
-			"CREATE TABLE IF NOT EXISTS log_totals (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, total_time REAL, level1_time REAL, level2_time REAL, level3_time REAL, level4_time REAL, level5_time REAL, date_logged INTEGER);"
-		gDB:execute(totalsQuery)
-		-- Create a table for each level
-		for i = 1, #levels do
-			local query = string.format(
-				"CREATE TABLE IF NOT EXISTS log_level%d (id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER NOT NULL, name TEXT, time_completed REAL, first_key_used TEXT, date_logged INTEGER, FOREIGN KEY(player_id) REFERENCES log_totals(id));",
-				i
-			)
-			gDB:execute(query)
+	if not IS_WEB then
+		local saveDir = love.filesystem.getSaveDirectory()
+		gDB = sqlite3.open(saveDir .. "/gameDB.db")
+
+		if gDB then
+			-- Create totals table for players who complete all levels
+			local totalsQuery =
+				"CREATE TABLE IF NOT EXISTS log_totals (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, total_time REAL, level1_time REAL, level2_time REAL, level3_time REAL, level4_time REAL, level5_time REAL, date_logged INTEGER);"
+			gDB:execute(totalsQuery)
+			-- Create a table for each level
+			for i = 1, #levels do
+				local query = string.format(
+					"CREATE TABLE IF NOT EXISTS log_level%d (id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER NOT NULL, name TEXT, time_completed REAL, first_key_used TEXT, date_logged INTEGER, FOREIGN KEY(player_id) REFERENCES log_totals(id));",
+					i
+				)
+				gDB:execute(query)
+			end
 		end
+	else
+		gDB = nil
 	end
 
 	myFont = love.graphics.newFont(30)
@@ -305,24 +316,27 @@ function love.update(dt)
   	end
 
 	if not startUp then
-		if gDB and gDB:isopen() then
-			name.update(dt)
-			playerName = name.submittedName()
-			if name.ready() then
-				-- Insert new record
+		name.update(dt)
+		playerName = name.submittedName()
+
+		if name.ready() then
+			if gDB and gDB:isopen() then
 				local insertQuery = string.format(
 					"INSERT INTO log_totals (name, date_logged) VALUES ('%s', %d)",
 					escapeSQLString(playerName), os.time()
 				)
 				gDB:execute(insertQuery)
-
-				-- Get id
 				playerID = gDB:last_insert_rowid()
-				startUp = true
+			else
+				-- Web fallback
+				playerID = 0
 			end
+
+			startUp = true
 		end
 		return
 	end
+
 
 	if timerRunning then
 		timer = timer + dt
